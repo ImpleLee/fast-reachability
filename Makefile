@@ -13,7 +13,5 @@ build:
 
 .PHONY: clean all build run time
 all: $(TARGETS)
-time: all
-	time ./build/main >/dev/null
 clean:
 	rm -rf build

@@ -5,6 +5,8 @@
 #include <iostream>
 #include <queue>
 #include <tuple>
+#include <cassert>
+#include <chrono>
 using namespace std;
 
 #define $ if (true)
@@ -92,6 +94,21 @@ struct board {
           ret += "[]";
         } else {
           ret += "  ";
+        }
+      }
+      ret += '\n';
+    }
+    return ret;
+  }
+  friend string to_string(const inv_board_t &board1, const inv_board_t &board2, const board_t &board_3) {
+    string ret;
+    for (int y = H - 1; y >= 0; --y) {
+      for (int x = 0; x < W; ++x) {
+        bool tested[2] = {board1[y * W + x], board2[y * W + x]};
+        bool b3 = board_3.data[y * W + x];
+        string symbols = "  <>[]%%";
+        for (int i = 0; i < 2; ++i) {
+          ret += symbols[b3 * 4 + tested[i] * 2 + i];
         }
       }
       ret += '\n';
@@ -299,15 +316,6 @@ struct board {
       return kicks;
     }();
     constexpr const coord MOVES[] = {{0, -1}, {-1, 0}, {1, 0}};
-    const array<array<inv_board_t, 3>, 4> moves = [&](){
-      array<array<inv_board_t, 3>, 4> moves;
-      for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 3; ++j) {
-          moves[i][j] = move_positions(block.minos[i], MOVES[j]);
-        }
-      }
-      return moves;
-    }();
     array<inv_board_t, 4> ret;
     if (!usable[0][start[1] * W + start[0]]) {
       return ret;
@@ -321,11 +329,10 @@ struct board {
           continue;
         }
         need_visit[i] = false;
-        for (int j = 0; j < 3; ++j) {
-          inv_board_t from = ret[i] & moves[i][j];
-          inv_board_t to = move_to_center<false, true>(from, MOVES[j]);
-          inv_board_t det = to & ~ret[i];
-          if (det.any()) {
+        for (auto &move: MOVES) {
+          inv_board_t mask = usable[i] & ~ret[i];
+          inv_board_t to = move_to_center<true, true>(ret[i], move) & mask;
+          if (to.any()) {
             ret[i] |= to;
             need_visit[i] = true;
             updated = true;
@@ -333,11 +340,11 @@ struct board {
         }
         for (int j = 0; j < 3; ++j) {
           inv_board_t to;
+          int target = (i + j + 1) % 4;
           for (int k = 0; k < 5; ++k) {
             inv_board_t from = ret[i] & kicks[i][j][k];
             to |= move_to_center<false, true>(from, block.kicks[i][j][k]);
           }
-          int target = (i + j + 1) % 4;
           inv_board_t det = to & ~ret[target];
           if (det.any()) {
             ret[target] |= to;
@@ -370,46 +377,33 @@ struct board {
       return kicks;
     }();
     constexpr const coord MOVES[] = {{0, -1}, {-1, 0}, {1, 0}};
-    const array<array<inv_board_t, 3>, 4> moves = [&](){
-      array<array<inv_board_t, 3>, 4> moves;
-      for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 3; ++j) {
-          moves[i][j] = move_positions(block.minos[i], MOVES[j]);
-        }
-      }
-      return moves;
-    }();
     array<inv_board_t, 4> ret;
     if (!usable[0][start[1] * W + start[0]]) {
       return ret;
     }
     ret[0].set(start[1] * W + start[0]);
-    queue<tuple<int, int, int, int>> q;
-    q.emplace(start[0], start[1], 0, 0);
-    int last_times;
+    queue<tuple<int, int, int>> q;
+    q.emplace(start[0], start[1], 0);
     while (!q.empty()) {
-      auto [x, y, i, times] = q.front();
+      const auto [x, y, i] = q.front();
       q.pop();
-      for (int j = 0; j < 3; ++j) {
-        auto &[dx, dy] = MOVES[j];
-        if (moves[i][j].get(x, y) && ret[i].get(x + dx, y + dy) != 1) {
+      for (auto &[dx, dy]: MOVES) {
+        if (usable[i].get(x + dx, y + dy) && !ret[i].get(x + dx, y + dy)) {
           ret[i].set((y + dy) * W + x + dx);
-          q.emplace(x + dx, y + dy, i, times+1);
+          q.emplace(x + dx, y + dy, i);
         }
       }
       for (int j = 0; j < 3; ++j) {
         for (int k = 0; k < 5; ++k) {
           auto &[dx, dy] = block.kicks[i][j][k];
-          if (kicks[i][j][k].get(x, y) && ret[(i + j + 1) % 4].get(x + dx, y + dy) != 1) {
+          if (kicks[i][j][k].get(x, y) && !ret[(i + j + 1) % 4].get(x + dx, y + dy)) {
             ret[(i + j + 1) % 4].set((y + dy) * W + x + dx);
-            q.emplace(x + dx, y + dy, (i + j + 1) % 4, times+1);
+            q.emplace(x + dx, y + dy, (i + j + 1) % 4);
             break;
           }
         }
       }
-      last_times = times;
     }
-    cout << last_times << endl;
     for (int i = 0; i < 4; ++i) {
       ret[i] &= landable_positions(usable[i]);
     }
@@ -449,10 +443,9 @@ struct board {
     queue<tuple<int, int, int>> q;
     q.emplace(start[0], start[1], 0);
     while (!q.empty()) {
-      auto [x, y, i] = q.front();
+      const auto [x, y, i] = q.front();
       q.pop();
-      for (int j = 0; j < 3; ++j) {
-        auto &[dx, dy] = MOVES[j];
+      for (auto &[dx, dy] : MOVES) {
         if (in_range(x + dx, y + dy) && !visited[i][y + dy][x + dx] && usable(i, x + dx, y + dy)) {
           visited[i][y + dy][x + dx] = true;
           q.emplace(x + dx, y + dy, i);
@@ -461,14 +454,16 @@ struct board {
         }
       }
       for (int j = 0; j < 3; ++j) {
+        const auto target = (i + j + 1) % 4;
         for (int k = 0; k < 5; ++k) {
           auto &[dx, dy] = block.kicks[i][j][k];
-          auto target = (i + j + 1) % 4;
-          if (in_range(x + dx, y + dy) && !visited[target][y + dy][x + dx] && usable(target, x + dx, y + dy)) {
-            visited[target][y + dy][x + dx] = true;
-            q.emplace(x + dx, y + dy, target);
-            if (!usable(target, x + dx, y + dy - 1))
-              ret[target].set((y + dy) * W + x + dx);
+          if (in_range(x + dx, y + dy) && usable(target, x + dx, y + dy)) {
+            if (!visited[target][y + dy][x + dx]) {
+              visited[target][y + dy][x + dx] = true;
+              q.emplace(x + dx, y + dy, target);
+              if (!usable(target, x + dx, y + dy - 1))
+                ret[target].set((y + dy) * W + x + dx);
+            }
             break;
           }
         }
@@ -546,8 +541,6 @@ int main() {
     res.append(s.rbegin(), s.rend());
   }
   board<10, 22> b{bitset<10 * 22>{res}};
-  cout << to_string(b.data);
-  cout << b.clear_full_lines() << endl;
   block B = {
     {
 #ifdef difficult
@@ -585,15 +578,28 @@ int main() {
       }
     }
   };
-  size_t l = 0;
-  // for (int _ = 0; _ < 100000; ++_) {
-    bitset<10 * 22> temp;
-    auto binary = b.binary_bfs(B, {4, 20});
-    for (int i = 0; i < 4; ++i) {
-      temp ^= binary[i].data;
+  auto binary = b.binary_bfs(B, {4, 20});
+  auto ordinary = b.ordinary_bfs(B, {4, 20});
+  auto ordinary_without_binary = b.ordinary_bfs_without_binary(B, {4, 20});
+  for (int i = 0; i < 4; ++i) {
+    if (binary[i].data != ordinary[i].data) {
+      cout << "binary[" << i << "] != ordinary[" << i << "]" << endl;
+      cout << to_string(binary[i], ordinary[i], b.data) << endl;
     }
-    l ^= temp.count();
-    l = (l << 1) | (l >> 63);
-  // }
-  cout << l << endl;
+    if (binary[i].data != ordinary_without_binary[i].data) {
+      cout << "binary[" << i << "] != ordinary_without_binary[" << i << "]" << endl;
+      cout << to_string(binary[i], ordinary_without_binary[i], b.data) << endl;
+    }
+  }
+  auto bench = [&](auto f) {
+    auto start = chrono::system_clock::now();
+    for (int _ = 0; _ < 100000; ++_) {
+      f();
+    }
+    auto end = chrono::system_clock::now();
+    return chrono::duration_cast<chrono::milliseconds>(end - start).count();
+  };
+  cout << "binary: " << bench([&](){b.binary_bfs(B, {4, 20});}) << endl;
+  cout << "ordinary: " << bench([&](){b.ordinary_bfs(B, {4, 20});}) << endl;
+  cout << "ordinary_without_binary: " << bench([&](){b.ordinary_bfs_without_binary(B, {4, 20});}) << endl;
 }
