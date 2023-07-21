@@ -74,6 +74,12 @@ struct board {
         } \
         return data[y * W + x]; \
       }\
+      constexpr name & left_shift(size_t i) { \
+        return *this <<= i; \
+      } \
+      constexpr name & right_shift(size_t i) { \
+        return *this >>= i; \
+      } \
       constexpr bool any() const { \
         return data.any(); \
       } \
