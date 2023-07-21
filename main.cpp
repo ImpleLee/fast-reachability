@@ -46,64 +46,6 @@ template <int W, int H>
 struct board {
   struct inv_board_t;
   struct board_t;
-  #define new_board
-  #ifndef new_board
-  #define DEF_OPERATOR(ret, op, param, expr) \
-    constexpr ret operator op(param) const { \
-      return {data op expr}; \
-    } \
-    constexpr ret &operator op##=(param) { \
-      data op##= expr; \
-      return *this; \
-    }
-  #define DEF_BOARD(name, other_name) \
-    struct name { \
-      constexpr name() { } \
-      constexpr name(const string &s): data(s, 0, string::npos, ' ', 'X') { } \
-      friend struct other_name; \
-      constexpr name(const bitset<W * H> &d_): data(d_) { } \
-      constexpr explicit name(const other_name &other): data((~other).data) { } \
-      constexpr name set(int x, int y) { \
-        assert(!(x < 0 || x >= W || y < 0 || y >= H)); \
-        data.set(y * W + x); \
-        return *this; \
-      } \
-      constexpr int get(int x, int y) const { \
-        if (x < 0 || x >= W || y < 0 || y >= H) { \
-          return 2; \
-        } \
-        return data[y * W + x]; \
-      }\
-      constexpr name & left_shift(size_t i) { \
-        return *this <<= i; \
-      } \
-      constexpr name & right_shift(size_t i) { \
-        return *this >>= i; \
-      } \
-      constexpr bool any() const { \
-        return data.any(); \
-      } \
-      constexpr name operator~() const { \
-        return {~data}; \
-      } \
-      constexpr bool operator[](size_t i) const { \
-        return data[i]; \
-      } \
-      constexpr bool operator!=(const name &other) const { \
-        return data != other.data; \
-      } \
-      DEF_OPERATOR(name, &, const name &rhs, rhs.data) \
-      DEF_OPERATOR(name, |, const name &rhs, rhs.data) \
-      DEF_OPERATOR(name, >>, size_t i, i) \
-      DEF_OPERATOR(name, <<, size_t i, i) \
-    private: \
-      bitset<W * H> data; \
-    }
-  DEF_BOARD(board_t, inv_board_t);
-  DEF_BOARD(inv_board_t, board_t);
-  #undef DEF_BOARD
-  #undef DEF_OPERATOR
-  #else
   static constexpr const size_t W2 = (64 / W) * W;
   static constexpr const size_t H2 = (H - 1) / (64 / W) + 1;
   static constexpr const size_t DIFF = H2 * W2 - H * W;
@@ -217,7 +159,6 @@ struct board {
   DEF_BOARD(board_t, inv_board_t);
   DEF_BOARD(inv_board_t, board_t);
   #undef DEF_BOARD
-  #endif
   friend string to_string(const board_t &board) {
     string ret;
     for (int y = H - 1; y >= 0; --y) {
