@@ -298,6 +298,7 @@ struct board {
     }
     return ret;
   }
+  template <bool use_optimize=false>
   constexpr array<inv_board_t, 4> binary_bfs(const block &block, const coord &start) const {
     const array<inv_board_t, 4> usable = [&](){
       array<inv_board_t, 4> usable;
@@ -328,16 +329,18 @@ struct board {
         if (!need_visit[i]) {
           continue;
         }
-        need_visit[i] = false;
-        for (auto &move: MOVES) {
-          inv_board_t mask = usable[i] & ~ret[i];
-          inv_board_t to = move_to_center<true, true>(ret[i], move) & mask;
-          if (to.any()) {
-            ret[i] |= to;
-            need_visit[i] = true;
-            updated = true;
+        do {
+          need_visit[i] = false;
+          for (auto &move: MOVES) {
+            inv_board_t mask = usable[i] & ~ret[i];
+            inv_board_t to = move_to_center<true, true>(ret[i], move) & mask;
+            if (to.any()) {
+              ret[i] |= to;
+              need_visit[i] = true;
+              updated = true;
+            }
           }
-        }
+        } while (need_visit[i]);
         for (int j = 0; j < 3; ++j) {
           inv_board_t to;
           int target = (i + j + 1) % 4;
@@ -474,7 +477,7 @@ struct board {
 };
 
 bool _ = ios::sync_with_stdio(false);
-#define difficult
+//#define difficult
 int main() {
 #ifdef difficult
   vector<string> b_str = {
@@ -579,10 +582,15 @@ int main() {
     }
   };
   auto binary = b.binary_bfs(B, {4, 20});
+  auto binary_2 = b.binary_bfs<true>(B, {4, 20});
   auto ordinary = b.ordinary_bfs(B, {4, 20});
   auto ordinary_without_binary = b.ordinary_bfs_without_binary(B, {4, 20});
   for (int i = 0; i < 4; ++i) {
     if (binary[i].data != ordinary[i].data) {
+      cout << "binary[" << i << "] != ordinary[" << i << "]" << endl;
+      cout << to_string(binary[i], ordinary[i], b.data) << endl;
+    }
+    if (binary_2[i].data != ordinary[i].data) {
       cout << "binary[" << i << "] != ordinary[" << i << "]" << endl;
       cout << to_string(binary[i], ordinary[i], b.data) << endl;
     }
@@ -600,6 +608,7 @@ int main() {
     return chrono::duration_cast<chrono::milliseconds>(end - start).count();
   };
   cout << "binary: " << bench([&](){b.binary_bfs(B, {4, 20});}) << endl;
+  cout << "binary_2: " << bench([&](){b.binary_bfs<true>(B, {4, 20});}) << endl;
   cout << "ordinary: " << bench([&](){b.ordinary_bfs(B, {4, 20});}) << endl;
   cout << "ordinary_without_binary: " << bench([&](){b.ordinary_bfs_without_binary(B, {4, 20});}) << endl;
 }
