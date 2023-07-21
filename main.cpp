@@ -21,15 +21,6 @@ struct block {
   array<array<kick, 3>, 4> kicks;
 };
 
-template <size_t N>
-constexpr bitset<N> remove_range(const bitset<N> &data, unsigned start, unsigned end) {
-  bitset<N> below = data << (N - start);
-  below >>= (N - start);
-  bitset<N> above = data >> end;
-  above <<= start;
-  return below | above;
-}
-
 template <int W, int H>
 struct board {
   struct inv_board_t;
@@ -233,7 +224,14 @@ struct board {
     return ret;
   }
   board_t data;
-  #ifndef new_board
+  template <class T>
+  constexpr T remove_range(const T &data, unsigned start, unsigned end) {
+    T below = data << (H * W - start);
+    below >>= (H * W - start);
+    T above = data >> end;
+    above <<= start;
+    return below | above;
+  }
   constexpr int clear_full_lines() {
     auto board = data;
     int i = 1;
@@ -243,14 +241,13 @@ struct board {
     board &= board >> (W - i);
     int lines = 0;
     for (int y = 0; y < H; ++y) {
-      if (board[y * W]) {
-        data = {remove_range(data.data, (y - lines) * W, (y - lines + 1) * W)};
+      if (board.get(0, y)) {
+        data = remove_range(data, (y - lines) * W, (y - lines + 1) * W);
         ++lines;
       }
     }
     return lines;
   }
-  #endif
   template <bool check = true, bool reverse = false, class board_t>
   static constexpr board_t move_to_center(board_t board, const coord &d) {
     auto dx = d[0], dy = d[1];
