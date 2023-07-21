@@ -458,6 +458,7 @@ struct board {
             MOVE(move, true);
           }
           MOVE(DOWN, false);
+          #undef MOVE
         } while (need_visit[i]);
         for (int j = 0; j < 3; ++j) {
           inv_board_t to;
