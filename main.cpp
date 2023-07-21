@@ -180,12 +180,26 @@ struct board {
         } \
         return *this; \
       } \
+      constexpr name & right_shift(size_t i) { \
+        data[H2 - 1] <<= DIFF; \
+        data[H2 - 1] >>= DIFF; \
+        for (size_t j = 0; j < H2; ++j) { \
+          data[j] >>= i; \
+        } \
+        return *this; \
+      } \
       constexpr name & operator<<=(size_t i) { \
         for (size_t j = H2 - 1; j < H2; --j) { \
           data[j] <<= i; \
           if (j > 0) { \
             data[j] |= data[j - 1] >> (W2 - i); \
           } \
+        } \
+        return *this; \
+      } \
+      constexpr name & left_shift(size_t i) { \
+        for (size_t j = H2 - 1; j < H2; --j) { \
+          data[j] <<= i; \
         } \
         return *this; \
       } \
@@ -268,7 +282,8 @@ struct board {
     }
     return lines;
   }
-  template <bool check = true, bool reverse = false, class board_t>
+  // TODO: finally move d to template parameter and remove redundant template parameters
+  template <bool check = true, bool reverse = false, bool use_shift = false, class board_t>
   static constexpr board_t move_to_center(board_t board, const coord &d) {
     auto dx = d[0], dy = d[1];
     if constexpr (reverse) {
@@ -289,10 +304,18 @@ struct board {
       }
     }
     int move = dy * W + dx;
-    if (move < 0) {
-      board <<= -move;
+    if constexpr (use_shift) {
+      if (move < 0) {
+        board.left_shift(-move);
+      } else {
+        board.right_shift(move);
+      }
     } else {
-      board >>= move;
+      if (move < 0) {
+        board <<= -move;
+      } else {
+        board >>= move;
+      }
     }
     if constexpr (check) {
       board &= mask;
@@ -379,10 +402,18 @@ struct board {
     return ret;
   }
   template <size_t N>
-  static constexpr array<inv_board_t, N> kick_positions(const inv_board_t &start, const inv_board_t &end, const array<coord, N> &kick) {
+  static constexpr array<inv_board_t, N> kick_positions(
+    const inv_board_t &start, const inv_board_t &end,
+    const array<inv_board_t, 5> &end_moved,
+    const array<coord, N> &kick) {
     array<inv_board_t, N> positions;
     for (size_t i = 0; i < N; ++i) {
-      positions[i] = move_to_center(end, kick[i]) & start;
+      if (kick[i][0] < -2 || kick[i][0] > 2) {
+        positions[i] = move_to_center(end, kick[i]);
+      } else {
+        positions[i] = move_to_center<false>(end_moved[kick[i][0]+2], {0, kick[i][1]});
+      }
+      positions[i] &= start;
     }
     inv_board_t temp = positions[0];
     for (size_t i = 1; i < N; ++i) {
@@ -421,6 +452,7 @@ struct board {
     return ret;
   }
   template <bool use_optimize=false>
+  [[gnu::noinline]]
   constexpr array<inv_board_t, 4> binary_bfs(const block &block, const coord &start) const {
     const array<inv_board_t, 4> usable = [&](){
       array<inv_board_t, 4> usable;
@@ -429,16 +461,27 @@ struct board {
       }
       return usable;
     }();
+    const array<array<inv_board_t, 5>, 4> usable_moved = [&](){
+      array<array<inv_board_t, 5>, 4> usable_moved;
+      for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 5; ++j) {
+          usable_moved[i][j] = move_to_center<true, false, true>(usable[i], {static_cast<signed char>(j-2), 0});
+        }
+      }
+      return usable_moved;
+    }();
     const array<array<array<inv_board_t, 5>, 3>, 4> kicks = [&](){
       array<array<array<inv_board_t, 5>, 3>, 4> kicks;
       for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 3; ++j) {
-          kicks[i][j] = kick_positions(usable[i], usable[(i + j + 1) % 4], block.kicks[i][j]);
+          int target = (i + j + 1) % 4;
+          kicks[i][j] = kick_positions(usable[i], usable[target], usable_moved[target], block.kicks[i][j]);
         }
       }
       return kicks;
     }();
-    constexpr const coord MOVES[] = {{0, -1}, {-1, 0}, {1, 0}};
+    constexpr const coord LEFT_RIGHT[] = {{-1, 0}, {1, 0}};
+    constexpr const coord DOWN = {0, -1};
     array<inv_board_t, 4> ret;
     if (!usable[0].get(start[0], start[1])) {
       return ret;
@@ -453,18 +496,21 @@ struct board {
         }
         do {
           need_visit[i] = false;
-          for (auto &move: MOVES) {
-            inv_board_t mask = usable[i] & ~ret[i];
-            if (!mask.any()) {
-              continue;
-            }
-            inv_board_t to = move_to_center<true, true>(ret[i], move) & mask;
-            if (to.any()) {
-              ret[i] |= to;
-              need_visit[i] = true;
-              updated = true;
-            }
+          #define MOVE(move, param) { \
+            inv_board_t mask = usable[i] & ~ret[i]; \
+            if (mask.any()) { \
+              inv_board_t to = move_to_center<param, true, param>(ret[i], move) & mask; \
+              if (to.any()) { \
+                ret[i] |= to; \
+                need_visit[i] = true; \
+                updated = true; \
+              } \
+            } \
           }
+          for (auto &move: LEFT_RIGHT) {
+            MOVE(move, true);
+          }
+          MOVE(DOWN, false);
         } while (need_visit[i]);
         for (int j = 0; j < 3; ++j) {
           inv_board_t to;
@@ -495,11 +541,21 @@ struct board {
       }
       return usable;
     }();
+    const array<array<inv_board_t, 5>, 4> usable_moved = [&](){
+      array<array<inv_board_t, 5>, 4> usable_moved;
+      for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 5; ++j) {
+          usable_moved[i][j] = move_to_center(usable[i], {static_cast<signed char>(j-2), 0});
+        }
+      }
+      return usable_moved;
+    }();
     const array<array<array<inv_board_t, 5>, 3>, 4> kicks = [&](){
       array<array<array<inv_board_t, 5>, 3>, 4> kicks;
       for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 3; ++j) {
-          kicks[i][j] = kick_positions(usable[i], usable[(i + j + 1) % 4], block.kicks[i][j]);
+          int target = (i + j + 1) % 4;
+          kicks[i][j] = kick_positions(usable[i], usable[target], usable_moved[target], block.kicks[i][j]);
         }
       }
       return kicks;
