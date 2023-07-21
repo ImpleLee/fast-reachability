@@ -21,6 +21,27 @@ struct block {
   array<array<kick, 3>, 4> kicks;
 };
 
+template <typename board_t, int W, int H>
+// should be constexpr
+// but constexpr-bitset requires C++23
+const board_t L = []() constexpr {
+  board_t data;
+  for (int i = 0; i < H; ++i) {
+    data.set(W - 1, i);
+  }
+  return ~data;
+}();
+template <typename board_t, int W, int H>
+// should be constexpr
+// but constexpr-bitset requires C++23
+const board_t R = []() constexpr {
+  board_t data;
+  for (int i = 0; i < H; ++i) {
+    data.set(0, i);
+  }
+  return ~data;
+}();
+
 template <int W, int H>
 struct board {
   struct inv_board_t;
@@ -28,41 +49,41 @@ struct board {
   #define new_board
   #ifndef new_board
   #define DEF_OPERATOR(ret, op, param, expr) \
-    ret operator op(param) const { \
+    constexpr ret operator op(param) const { \
       return {data op expr}; \
     } \
-    ret &operator op##=(param) { \
+    constexpr ret &operator op##=(param) { \
       data op##= expr; \
       return *this; \
     }
   #define DEF_BOARD(name, other_name) \
     struct name { \
-      name() { } \
-      name(const string &s): data(s, 0, string::npos, ' ', 'X') { } \
+      constexpr name() { } \
+      constexpr name(const string &s): data(s, 0, string::npos, ' ', 'X') { } \
       friend struct other_name; \
-      name(const bitset<W * H> &d_): data(d_) { } \
-      explicit name(const other_name &other): data((~other).data) { } \
-      name set(int x, int y) { \
+      constexpr name(const bitset<W * H> &d_): data(d_) { } \
+      constexpr explicit name(const other_name &other): data((~other).data) { } \
+      constexpr name set(int x, int y) { \
         assert(!(x < 0 || x >= W || y < 0 || y >= H)); \
         data.set(y * W + x); \
         return *this; \
       } \
-      int get(int x, int y) const { \
+      constexpr int get(int x, int y) const { \
         if (x < 0 || x >= W || y < 0 || y >= H) { \
           return 2; \
         } \
         return data[y * W + x]; \
       }\
-      bool any() const { \
+      constexpr bool any() const { \
         return data.any(); \
       } \
-      name operator~() const { \
+      constexpr name operator~() const { \
         return {~data}; \
       } \
-      bool operator[](size_t i) const { \
+      constexpr bool operator[](size_t i) const { \
         return data[i]; \
       } \
-      bool operator!=(const name &other) const { \
+      constexpr bool operator!=(const name &other) const { \
         return data != other.data; \
       } \
       DEF_OPERATOR(name, &, const name &rhs, rhs.data) \
@@ -81,13 +102,13 @@ struct board {
   static constexpr const size_t H2 = (H - 1) / (64 / W) + 1;
   static constexpr const size_t DIFF = H2 * W2 - H * W;
   #define DEF_DUAL_OPERATOR(ret, op, param, expr2) \
-    ret operator op(param) const { \
+    constexpr ret operator op(param) const { \
       ret result = *this; \
       result op##= expr2; \
       return result; \
     }
   #define DEF_OPERATOR(ret, op, param, expr, expr2) \
-    ret &operator op##=(param) { \
+    constexpr ret &operator op##=(param) { \
       for (size_t i = 0; i < H2; ++i) { \
         data[i] op##= expr; \
       } \
@@ -97,35 +118,34 @@ struct board {
   #define DEF_BOARD(name, name2) \
     struct name { \
       friend struct name2; \
-      name() { } \
-      name(const string &s) { \
+      constexpr name() { } \
+      constexpr name(const string &s) { \
         for (size_t i = 0; i + 1 < H2; ++i) { \
           data[i] = bitset<W2>{s, W * H - (i + 1) * W2, W2, ' ', 'X'}; \
         } \
         data[H2 - 1] = bitset<W2>{s, 0, W2 - DIFF, ' ', 'X'}; \
       } \
-      explicit name(const name2 &other) { \
+      constexpr explicit name(const name2 &other) { \
         for (size_t i = 0; i < H2; ++i) \
           data[i] = ~other.data[i]; \
       } \
-      name operator~() const { \
+      constexpr name operator~() const { \
         name other; \
         for (size_t i = 0; i < H2; ++i) { \
           other.data[i] = ~data[i]; \
         } \
         return other; \
       } \
-      void set(int x, int y) { \
-        assert(!(x < 0 || x >= W || y < 0 || y >= H)); \
+      constexpr void set(int x, int y) { \
         data[y / (64 / W)].set((y % (64 / W)) * W + x); \
       } \
-      int get(int x, int y) const { \
+      constexpr int get(int x, int y) const { \
         if ((x < 0) || (x >= W) || (y < 0) || (y >= H)) { \
           return 2; \
         } \
         return data[y / (64 / W)][(y % (64 / W)) * W + x]; \
       } \
-      bool any() const { \
+      constexpr bool any() const { \
         for (size_t i = 0; i + 1 < H2; ++i) { \
           if (data[i].any()) { \
             return true; \
@@ -136,7 +156,7 @@ struct board {
         } \
         return false; \
       } \
-      bool operator!=(const name &other) const { \
+      constexpr bool operator!=(const name &other) const { \
         for (size_t i = 0; i + 1 < H2; ++i) { \
           if (data[i] != other.data[i]) { \
             return true; \
@@ -149,7 +169,7 @@ struct board {
       } \
       DEF_OPERATOR(name, &, const name &rhs, rhs.data[i], rhs) \
       DEF_OPERATOR(name, |, const name &rhs, rhs.data[i], rhs) \
-      name & operator>>=(size_t i) { \
+      constexpr name & operator>>=(size_t i) { \
         data[H2 - 1] <<= DIFF; \
         data[H2 - 1] >>= DIFF; \
         for (size_t j = 0; j < H2; ++j) { \
@@ -160,7 +180,7 @@ struct board {
         } \
         return *this; \
       } \
-      name & operator<<=(size_t i) { \
+      constexpr name & operator<<=(size_t i) { \
         for (size_t j = H2 - 1; j < H2; --j) { \
           data[j] <<= i; \
           if (j > 0) { \
@@ -259,26 +279,12 @@ struct board {
     if constexpr (check) {
       mask = ~board_t();
       if (dx < 0) {
-        const board_t R = [](){
-          board_t data;
-          for (int i = 0; i < H; ++i) {
-            data.set(0, i);
-          }
-          return ~data;
-        }();
         for (int i = 0; i < -dx; ++i) {
-          mask &= R << i;
+          mask &= R<board_t, W, H> << i;
         }
       } else if (dx > 0) {
-        const board_t L = [](){
-          board_t data;
-          for (int i = 0; i < H; ++i) {
-            data.set(W - 1, i);
-          }
-          return ~data;
-        }();
         for (int i = 0; i < dx; ++i) {
-          mask &= L >> i;
+          mask &= L<board_t, W, H> >> i;
         }
       }
     }
