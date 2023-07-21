@@ -233,12 +233,12 @@ struct board {
   template <bool check = true, bool reverse = false, bool use_shift = false, class board_t>
   static constexpr board_t move_to_center(board_t board, const coord &d) {
     auto dx = d[0], dy = d[1];
-    if constexpr (reverse) {
+    if (reverse) {
       dx = -dx;
       dy = -dy;
     }
     board_t mask;
-    if constexpr (check) {
+    if (check && dx != 0) {
       mask = ~board_t();
       if (dx < 0) {
         for (int i = 0; i < -dx; ++i) {
@@ -251,7 +251,7 @@ struct board {
       }
     }
     int move = dy * W + dx;
-    if constexpr (use_shift) {
+    if (use_shift || dy == 0) {
       if (move < 0) {
         board.left_shift(-move);
       } else {
@@ -264,7 +264,7 @@ struct board {
         board >>= move;
       }
     }
-    if constexpr (check) {
+    if (check && dx != 0) {
       board &= mask;
     }
     return board;
