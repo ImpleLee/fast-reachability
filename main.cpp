@@ -455,6 +455,9 @@ struct board {
           need_visit[i] = false;
           for (auto &move: MOVES) {
             inv_board_t mask = usable[i] & ~ret[i];
+            if (!mask.any()) {
+              continue;
+            }
             inv_board_t to = move_to_center<true, true>(ret[i], move) & mask;
             if (to.any()) {
               ret[i] |= to;
