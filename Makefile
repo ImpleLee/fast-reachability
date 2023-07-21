@@ -1,5 +1,5 @@
 CC = g++
-CXXFLAGS = -std=c++17 -g -O3 -Wall -Wextra -march=native
+CXXFLAGS = -std=c++20 -g -flto -O3 -Wall -Wextra -march=native
 TARGETS := $(patsubst %.cpp, build/%, $(wildcard *.cpp))
 
 run: all
