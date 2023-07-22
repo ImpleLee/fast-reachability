@@ -16,13 +16,11 @@ using coord = array<signed char, 2>;
 using mino = array<coord, 4>;
 using kick = array<coord, 5>;
 
+namespace blocks {
 struct block {
   array<mino, 4> minos;
   array<array<kick, 3>, 4> kicks;
 };
-
-template <char name>
-static constexpr block blocks = {};
 
 constexpr array<array<kick, 3>, 4> common = {{
   {{ // 0
@@ -47,8 +45,7 @@ constexpr array<array<kick, 3>, 4> common = {{
   }}
 }};
 
-template <>
-constexpr block blocks<'T'> = {
+constexpr block T = {
   {{
     {{{-1, 0}, {0, 0}, {1, 0}, {0, 1}}},  // 0
     {{{0, 1}, {0, 0}, {0, -1}, {1, 0}}},  // R
@@ -57,8 +54,7 @@ constexpr block blocks<'T'> = {
   }},
   common
 };
-template <>
-constexpr block blocks<'Z'> = {
+constexpr block Z  = {
   {{
     {{{-1, 1}, {0, 1}, {0, 0}, {1, 0}}},   // 0
     {{{1, 1}, {1, 0}, {0, 0}, {0, -1}}},   // R
@@ -67,8 +63,7 @@ constexpr block blocks<'Z'> = {
   }},
   common
 };
-template <>
-constexpr block blocks<'S'> = {
+constexpr block S = {
   {{
     {{{1, 1}, {0, 1}, {0, 0}, {-1, 0}}},   // 0
     {{{1, -1}, {1, 0}, {0, 0}, {0, 1}}},   // R
@@ -77,8 +72,7 @@ constexpr block blocks<'S'> = {
   }},
   common
 };
-template <>
-constexpr block blocks<'J'> = {
+constexpr block J = {
   {{
     {{{-1, 1}, {-1, 0}, {0, 0}, {1, 0}}}, // 0
     {{{1, 1}, {0, 1}, {0, 0}, {0, -1}}},  // R
@@ -87,8 +81,7 @@ constexpr block blocks<'J'> = {
   }},
   common
 };
-template <>
-constexpr block blocks<'L'> = {
+constexpr block L = {
   {{
     {{{-1, 0}, {0, 0}, {1, 0}, {1, 1}}},  // 0
     {{{0, 1}, {0, 0}, {0, -1}, {1, -1}}}, // R
@@ -97,8 +90,7 @@ constexpr block blocks<'L'> = {
   }},
   common
 };
-template <>
-constexpr block blocks<'O'> = {
+constexpr block O = {
   {{
     {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // 0
     {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // R
@@ -128,8 +120,7 @@ constexpr block blocks<'O'> = {
     }}
   }}
 };
-template <>
-constexpr block blocks<'I'> = {
+constexpr block I = {
   {{
     {{{-1, 0}, {0, 0}, {1, 0}, {2, 0}}},   // 0
     {{{0, 0}, {0, 1}, {0, -1}, {0, -2}}},  // R
@@ -159,16 +150,17 @@ constexpr block blocks<'I'> = {
     }}
   }}
 };
+}
 
-static constexpr block get_block(char name) {
+static constexpr blocks::block get_block(char name) {
   switch (name) {
-    case 'T': return blocks<'T'>;
-    case 'Z': return blocks<'Z'>;
-    case 'S': return blocks<'S'>;
-    case 'J': return blocks<'J'>;
-    case 'L': return blocks<'L'>;
-    case 'O': return blocks<'O'>;
-    case 'I': return blocks<'I'>;
+    case 'T': return blocks::T;
+    case 'Z': return blocks::Z;
+    case 'S': return blocks::S;
+    case 'J': return blocks::J;
+    case 'L': return blocks::L;
+    case 'O': return blocks::O;
+    case 'I': return blocks::I;
     default: assert(false);
   }
 }
@@ -464,7 +456,7 @@ struct board {
     inv_board_t ret;
     array<inv_board_t, 5> kicks[3];
   };
-  template <block block, coord start, bool use_optimize=false>
+  template <blocks::block block, coord start, bool use_optimize=false>
   constexpr array<inv_board_t, 4> binary_bfs() const {
     info info[4];
     static_for<4>([&](auto i) {
@@ -534,17 +526,17 @@ struct board {
   [[gnu::noinline]]
   constexpr array<inv_board_t, 4> binary_bfs(char block) const {
     switch (block) {
-      case 'T': return binary_bfs<blocks<'T'>, start, use_optimize>();
-      case 'Z': return binary_bfs<blocks<'Z'>, start, use_optimize>();
-      case 'S': return binary_bfs<blocks<'S'>, start, use_optimize>();
-      case 'J': return binary_bfs<blocks<'J'>, start, use_optimize>();
-      case 'L': return binary_bfs<blocks<'L'>, start, use_optimize>();
-      case 'O': return binary_bfs<blocks<'O'>, start, use_optimize>();
-      case 'I': return binary_bfs<blocks<'I'>, start, use_optimize>();
+      case 'T': return binary_bfs<blocks::T, start, use_optimize>();
+      case 'Z': return binary_bfs<blocks::Z, start, use_optimize>();
+      case 'S': return binary_bfs<blocks::S, start, use_optimize>();
+      case 'J': return binary_bfs<blocks::J, start, use_optimize>();
+      case 'L': return binary_bfs<blocks::L, start, use_optimize>();
+      case 'O': return binary_bfs<blocks::O, start, use_optimize>();
+      case 'I': return binary_bfs<blocks::I, start, use_optimize>();
       default: assert(false);
     }
   }
-  array<inv_board_t, 4> ordinary_bfs_without_binary(const block &block, const coord &start) const {
+  array<inv_board_t, 4> ordinary_bfs_without_binary(const blocks::block &block, const coord &start) const {
     bool my_data[H][W];
     for (int y = 0; y < H; ++y) {
       for (int x = 0; x < W; ++x) {
