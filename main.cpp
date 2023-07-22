@@ -395,45 +395,6 @@ struct board {
     }
     return lines;
   }
-  template <bool check = true, bool reverse = false, bool use_shift = false, class board_t>
-  static constexpr board_t move_to_center(board_t board, const coord &d) {
-    auto dx = d[0], dy = d[1];
-    if (reverse) {
-      dx = -dx;
-      dy = -dy;
-    }
-    board_t mask;
-    if (check && dx != 0) {
-      mask = ~board_t();
-      if (dx < 0) {
-        for (int i = 0; i < -dx; ++i) {
-          mask &= R<board_t, W, H> << i;
-        }
-      } else if (dx > 0) {
-        for (int i = 0; i < dx; ++i) {
-          mask &= L<board_t, W, H> >> i;
-        }
-      }
-    }
-    int move = dy * W + dx;
-    if (use_shift || dy == 0) {
-      if (move < 0) {
-        board.left_shift(-move);
-      } else {
-        board.right_shift(move);
-      }
-    } else {
-      if (move < 0) {
-        board <<= -move;
-      } else {
-        board >>= move;
-      }
-    }
-    if (check && dx != 0) {
-      board &= mask;
-    }
-    return board;
-  }
   template <coord d, bool reverse = false, bool check = true, class board_t>
   static constexpr board_t move_to_center(board_t board) {
     auto dx = d[0], dy = d[1];
@@ -473,14 +434,6 @@ struct board {
     }
     return board;
   }
-  template <size_t N>
-  constexpr inv_board_t usable_positions(const array<coord, N> &mino) const {
-    inv_board_t positions = ~inv_board_t();
-    for (const auto &coord : mino) {
-      positions &= move_to_center(inv_board_t{data}, coord);
-    }
-    return positions;
-  }
   template <size_t N, array<coord, N> mino>
   constexpr inv_board_t usable_positions() const {
     inv_board_t positions = ~inv_board_t();
@@ -489,97 +442,8 @@ struct board {
     });
     return positions;
   }
-  template <size_t N>
-  bool test_usable(const array<coord, N> &mino) const {
-    auto usable = usable_positions(mino);
-    bool ret = true;
-    for (int x = 0; x < W; ++x) {
-      for (int y = 0; y < H; ++y) {
-        bool pred = usable.get(x, y);
-        bool truth = true;
-        for (const auto &[dx, dy] : mino) {
-          truth = truth && !data.get(x + dx, y + dy);
-        }
-        if (pred != truth) {
-          $ cout << "error at " << x << ", " << y << endl;
-          ret = false;
-        }
-      }
-    }
-    return ret;
-  }
   static constexpr inv_board_t landable_positions(const inv_board_t &usable) {
     return usable & ~(usable << W);
-  }
-  template <size_t N>
-  bool test_landable(const array<coord, N> &mino) const {
-    auto usable = usable_positions(mino);
-    auto landable = landable_positions(usable);
-    bool ret = true;
-    for (int x = 0; x < W; ++x) {
-      for (int y = 0; y < H; ++y) {
-        bool pred = landable.get(x, y);
-        if (!usable.get(x, y)) {
-          continue;
-        }
-        bool truth = false;
-        for (const auto &[dx, dy] : mino) {
-          truth |= data.get(x + dx, y + dy - 1);
-        }
-        if (pred != truth) {
-          $ cout << "error at " << x << ", " << y << endl;
-          ret = false;
-        }
-      }
-    }
-    return ret;
-  }
-  template <size_t N>
-  constexpr inv_board_t move_positions(const array<coord, N> &mino, const coord &dir) const {
-    inv_board_t positions = usable_positions(mino);
-    return move_to_center(positions, dir) & positions;
-  }
-  template <size_t N>
-  bool test_move(const array<coord, N> &mino, const coord &dir) const {
-    auto moved = move_positions(mino, dir);
-    auto usable = usable_positions(mino);
-    auto [dx, dy] = dir;
-    bool ret = true;
-    for (int x = 0; x < W; ++x) {
-      for (int y = 0; y < H; ++y) {
-        bool pred = moved.get(x, y);
-        if (!usable.get(x, y)) {
-          continue;
-        }
-        bool truth = usable.get(x + dx, y + dy) == 1;
-        if (pred != truth) {
-          $ cout << "error at " << x << ", " << y << endl;
-          ret = false;
-        }
-      }
-    }
-    return ret;
-  }
-  template <size_t N>
-  static constexpr array<inv_board_t, N> kick_positions(
-    const inv_board_t &start, const inv_board_t &end,
-    const array<inv_board_t, 5> &end_moved,
-    const array<coord, N> &kick) {
-    array<inv_board_t, N> positions;
-    for (size_t i = 0; i < N; ++i) {
-      if (kick[i][0] < -2 || kick[i][0] > 2) {
-        positions[i] = move_to_center(end, kick[i]);
-      } else {
-        positions[i] = move_to_center<false>(end_moved[kick[i][0]+2], {0, kick[i][1]});
-      }
-      positions[i] &= start;
-    }
-    inv_board_t temp = positions[0];
-    for (size_t i = 1; i < N; ++i) {
-      positions[i] &= ~temp;
-      temp |= positions[i];
-    }
-    return positions;
   }
   template <size_t N, array<coord, N> kick>
   static constexpr array<inv_board_t, N> kick_positions(const inv_board_t &start, const inv_board_t &end) {
@@ -594,118 +458,6 @@ struct board {
       temp |= positions[i];
     }
     return positions;
-  }
-  template <size_t N>
-  static bool test_kick(const inv_board_t &start, const inv_board_t &end, const array<coord, N> &kick) {
-    auto kicks = kick_positions(start, end, kick);
-    bool ret = true;
-    for (int x = 0; x < W; ++x) {
-      for (int y = 0; y < H; ++y) {
-        int pred = -1;
-        for (size_t i = 0; i < N; ++i) {
-          if (kicks[i].get(x, y)) {
-            pred = i;
-            break;
-          }
-        }
-        int truth = -1;
-        if (start.get(x, y) == 1)
-          for (size_t i = 0; i < N; ++i) {
-            if (end.get(x + kick[i][0], y + kick[i][1]) == 1) {
-              truth = i;
-              break;
-            }
-          }
-        if (pred != truth) {
-          $ cout << "error at " << x << ", " << y << ": should be " << truth << ", but got " << pred << endl;
-          ret = false;
-        }
-      }
-    }
-    return ret;
-  }
-  template <bool use_optimize=false>
-  [[gnu::noinline]]
-  constexpr array<inv_board_t, 4> binary_bfs(const block &block, const coord &start) const {
-    const array<inv_board_t, 4> usable = [&](){
-      array<inv_board_t, 4> usable;
-      for (int i = 0; i < 4; ++i) {
-        usable[i] = usable_positions(block.minos[i]);
-      }
-      return usable;
-    }();
-    const array<array<inv_board_t, 5>, 4> usable_moved = [&](){
-      array<array<inv_board_t, 5>, 4> usable_moved;
-      for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 5; ++j) {
-          usable_moved[i][j] = move_to_center<true, false, true>(usable[i], {static_cast<signed char>(j-2), 0});
-        }
-      }
-      return usable_moved;
-    }();
-    const array<array<array<inv_board_t, 5>, 3>, 4> kicks = [&](){
-      array<array<array<inv_board_t, 5>, 3>, 4> kicks;
-      for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 3; ++j) {
-          int target = (i + j + 1) % 4;
-          kicks[i][j] = kick_positions(usable[i], usable[target], usable_moved[target], block.kicks[i][j]);
-        }
-      }
-      return kicks;
-    }();
-    constexpr const coord LEFT_RIGHT[] = {{-1, 0}, {1, 0}};
-    constexpr const coord DOWN = {0, -1};
-    array<inv_board_t, 4> ret;
-    if (!usable[0].get(start[0], start[1])) {
-      return ret;
-    }
-    ret[0].set(start[0], start[1]);
-    bool need_visit[4] = {true, false, false, false};
-    for (bool updated = true; updated;) {
-      updated = false;
-      for (int i = 0; i < 4; ++i) {
-        if (!need_visit[i]) {
-          continue;
-        }
-        do {
-          need_visit[i] = false;
-          #define MOVE(move, param) { \
-            inv_board_t mask = usable[i] & ~ret[i]; \
-            if (mask.any()) { \
-              inv_board_t to = move_to_center<param, true, param>(ret[i], move) & mask; \
-              if (to.any()) { \
-                ret[i] |= to; \
-                need_visit[i] = true; \
-                updated = true; \
-              } \
-            } \
-          }
-          for (auto &move: LEFT_RIGHT) {
-            MOVE(move, true);
-          }
-          MOVE(DOWN, false);
-          #undef MOVE
-        } while (need_visit[i]);
-        for (int j = 0; j < 3; ++j) {
-          inv_board_t to;
-          int target = (i + j + 1) % 4;
-          for (int k = 0; k < 5; ++k) {
-            inv_board_t from = ret[i] & kicks[i][j][k];
-            to |= move_to_center<false, true>(from, block.kicks[i][j][k]);
-          }
-          inv_board_t det = to & ~ret[target];
-          if (det.any()) {
-            ret[target] |= to;
-            need_visit[target] = true;
-            updated = true;
-          }
-        }
-      }
-    }
-    for (int i = 0; i < 4; ++i) {
-      ret[i] &= landable_positions(usable[i]);
-    }
-    return ret;
   }
   struct info {
     inv_board_t usable;
@@ -791,66 +543,6 @@ struct board {
       case 'I': return binary_bfs<blocks<'I'>, start, use_optimize>();
       default: assert(false);
     }
-  }
-  array<inv_board_t, 4> ordinary_bfs(const block &block, const coord &start) const {
-    const array<inv_board_t, 4> usable = [&](){
-      array<inv_board_t, 4> usable;
-      for (int i = 0; i < 4; ++i) {
-        usable[i] = usable_positions(block.minos[i]);
-      }
-      return usable;
-    }();
-    const array<array<inv_board_t, 5>, 4> usable_moved = [&](){
-      array<array<inv_board_t, 5>, 4> usable_moved;
-      for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 5; ++j) {
-          usable_moved[i][j] = move_to_center(usable[i], {static_cast<signed char>(j-2), 0});
-        }
-      }
-      return usable_moved;
-    }();
-    const array<array<array<inv_board_t, 5>, 3>, 4> kicks = [&](){
-      array<array<array<inv_board_t, 5>, 3>, 4> kicks;
-      for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 3; ++j) {
-          int target = (i + j + 1) % 4;
-          kicks[i][j] = kick_positions(usable[i], usable[target], usable_moved[target], block.kicks[i][j]);
-        }
-      }
-      return kicks;
-    }();
-    constexpr const coord MOVES[] = {{0, -1}, {-1, 0}, {1, 0}};
-    array<inv_board_t, 4> ret;
-    if (!usable[0].get(start[0], start[1])) {
-      return ret;
-    }
-    ret[0].set(start[0], start[1]);
-    queue<tuple<int, int, int>> q;
-    q.emplace(start[0], start[1], 0);
-    while (!q.empty()) {
-      const auto [x, y, i] = q.front();
-      q.pop();
-      for (auto &[dx, dy]: MOVES) {
-        if (usable[i].get(x + dx, y + dy) && !ret[i].get(x + dx, y + dy)) {
-          ret[i].set(x + dx, y + dy);
-          q.emplace(x + dx, y + dy, i);
-        }
-      }
-      for (int j = 0; j < 3; ++j) {
-        for (int k = 0; k < 5; ++k) {
-          auto &[dx, dy] = block.kicks[i][j][k];
-          if (kicks[i][j][k].get(x, y) && !ret[(i + j + 1) % 4].get(x + dx, y + dy)) {
-            ret[(i + j + 1) % 4].set(x + dx, y + dy);
-            q.emplace(x + dx, y + dy, (i + j + 1) % 4);
-            break;
-          }
-        }
-      }
-    }
-    for (int i = 0; i < 4; ++i) {
-      ret[i] &= landable_positions(usable[i]);
-    }
-    return ret;
   }
   array<inv_board_t, 4> ordinary_bfs_without_binary(const block &block, const coord &start) const {
     bool my_data[H][W];
@@ -1018,21 +710,14 @@ int main() {
       cout << " BLOCK " << name[j] << endl;
       const auto &B = get_block(name[j]);
       auto binary = b.binary_bfs<coord{4, 20}>(name[j]);
-      auto ordinary = b.ordinary_bfs(B, {4, 20});
       auto ordinary_without_binary = b.ordinary_bfs_without_binary(B, {4, 20});
       for (int i = 0; i < 4; ++i) {
-        if (binary[i] != ordinary[i]) {
-          cout << "  binary[" << i << "] != ordinary[" << i << "]" << endl;
-          cout << to_string(binary[i], ordinary[i], b.data) << endl;
-        }
         if (binary[i] != ordinary_without_binary[i]) {
           cout << "  binary[" << i << "] != ordinary_without_binary[" << i << "]" << endl;
           cout << to_string(binary[i], ordinary_without_binary[i], b.data) << endl;
         }
       }
-      cout << "  binary  : " << bench([&](){b.binary_bfs(B, {4, 20});}) << "ns" << endl;
-      cout << "  binary 2: " << bench([&](){b.binary_bfs<coord{4, 20}>(name[j]);}) << "ns" << endl;
-      cout << "  ordinary: " << bench([&](){b.ordinary_bfs(B, {4, 20});}) << "ns" << endl;
+      cout << "  binary  : " << bench([&](){b.binary_bfs<coord{4, 20}>(name[j]);}) << "ns" << endl;
       cout << "  true ord: " << bench([&](){b.ordinary_bfs_without_binary(B, {4, 20});}) << "ns" << endl;
     }
   }
