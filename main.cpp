@@ -707,65 +707,65 @@ struct board {
     }
     return ret;
   }
+  struct info {
+    inv_board_t usable;
+    inv_board_t ret;
+    array<inv_board_t, 5> kicks[3];
+  };
   template <block block, coord start, bool use_optimize=false>
   constexpr array<inv_board_t, 4> binary_bfs() const {
-    const array<inv_board_t, 4> usable = [&](){
-      array<inv_board_t, 4> usable;
-      static_for<4>([&](auto i) {
-        usable[i] = usable_positions<4, block.minos[i]>();
+    info info[4];
+    static_for<4>([&](auto i) {
+      info[i].usable = usable_positions<4, block.minos[i]>();
+    });
+    static_for<4>([&](auto i) {
+      static_for<3>([&](auto j) {
+        constexpr auto target = (i + j + 1) % 4;
+        info[i].kicks[j] = kick_positions<5, block.kicks[i][j]>(info[i].usable, info[target].usable);
       });
-      return usable;
-    }();
-    const array<array<array<inv_board_t, 5>, 3>, 4> kicks = [&](){
-      array<array<array<inv_board_t, 5>, 3>, 4> kicks;
-      static_for<4>([&](auto i) {
-        static_for<3>([&](auto j) {
-          constexpr auto target = (i + j + 1) % 4;
-          kicks[i][j] = kick_positions<5, block.kicks[i][j]>(usable[i], usable[target]);
-        });
-      });
-      return kicks;
-    }();
+    });
     constexpr const coord MOVES[] = {{-1, 0}, {1, 0}, {0, -1}};
-    array<inv_board_t, 4> ret;
-    if (!usable[0].get(start[0], start[1])) {
-      return ret;
+    if (!info[0].usable.get(start[0], start[1])) {
+      return {};
     }
-    ret[0].set(start[0], start[1]);
     bool need_visit[4] = {true, false, false, false};
+    array<inv_board_t, 4> cache;
+    cache[0].set(start[0], start[1]);
     for (bool updated = true; updated;) {
       updated = false;
       static_for<4>([&](auto i){
         if (!need_visit[i]) {
           return;
         }
-        do {
-          need_visit[i] = false;
+        need_visit[i] = false;
+        info[i].ret = cache[i];
+        for (bool updated2 = true; updated2;) {
+          updated2 = false;
           static_for<3>([&](auto j){
             constexpr auto move = MOVES[j];
-            inv_board_t mask = usable[i] & ~ret[i];
+            inv_board_t mask = info[i].usable & ~info[i].ret;
             if (!mask.any()) {
               return;
             }
-            inv_board_t to = move_to_center<move, true>(ret[i]);
+            inv_board_t to = move_to_center<move, true>(info[i].ret);
             to &= mask;
             if (to.any()) {
-              ret[i] |= to;
-              need_visit[i] = true;
-              updated = true;
+              info[i].ret |= to;
+              updated2 = true;
             }
           });
-        } while (need_visit[i]);
+        }
+        cache[i] = info[i].ret;
         static_for<3>([&](auto j){
           constexpr int target = (i + j + 1) % 4;
           inv_board_t to;
           static_for<5>([&](auto k){
-            inv_board_t from = ret[i] & kicks[i][j][k];
+            inv_board_t from = info[i].ret & info[i].kicks[j][k];
             to |= move_to_center<block.kicks[i][j][k], true, false>(from);
           });
-          inv_board_t det = to & ~ret[target];
+          inv_board_t det = to & ~cache[target];
           if (det.any()) {
-            ret[target] |= to;
+            cache[target] |= to;
             need_visit[target] = true;
             updated = true;
           }
@@ -773,9 +773,9 @@ struct board {
       });
     }
     for (int i = 0; i < 4; ++i) {
-      ret[i] &= landable_positions(usable[i]);
+      cache[i] &= landable_positions(info[i].usable);
     }
-    return ret;
+    return cache;
   }
   template <coord start, bool use_optimize=false>
   [[gnu::noinline]]
