@@ -9,10 +9,10 @@ namespace reachability::blocks {
   struct block {
     using mino = std::array<coord, 4>;
     using kick = std::array<coord, 5>;
-    static constexpr const int ORIENTATIONS = orientations;
-    static constexpr const int ROTATIONS = rotations;
-    static constexpr const int BLOCK_PER_MINO = block_per_mino;
-    static constexpr const int KICK_PER_ROTATION = kick_per_rotation;
+    static constexpr int ORIENTATIONS = orientations;
+    static constexpr int ROTATIONS = rotations;
+    static constexpr int BLOCK_PER_MINO = block_per_mino;
+    static constexpr int KICK_PER_ROTATION = kick_per_rotation;
     [[no_unique_address]]
     std::array<mino, orientations> minos;
     [[no_unique_address]]
@@ -26,7 +26,7 @@ namespace reachability::blocks {
     }
   };
 
-  constexpr std::array<std::array<std::array<coord, 5>, 2>, 4> common = {{
+  inline constexpr std::array<std::array<std::array<coord, 5>, 2>, 4> common = {{
     {{ // 0
       {{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}}},  // -> R
       // {{{0, 1}, {0, 1}, {0, 1}, {0, 1}, {0, 1}}},       // -> 2
@@ -49,7 +49,7 @@ namespace reachability::blocks {
     }}
   }};
 
-  constexpr block<4, 2, 4, 5> T = {
+  inline constexpr block<4, 2, 4, 5> T = {
     {{
       {{{-1, 0}, {0, 0}, {1, 0}, {0, 1}}},  // 0
       {{{0, 1}, {0, 0}, {0, -1}, {1, 0}}},  // R
@@ -58,7 +58,7 @@ namespace reachability::blocks {
     }},
     common
   };
-  constexpr block<4, 2, 4, 5> Z  = {
+  inline constexpr block<4, 2, 4, 5> Z  = {
     {{
       {{{-1, 1}, {0, 1}, {0, 0}, {1, 0}}},   // 0
       {{{1, 1}, {1, 0}, {0, 0}, {0, -1}}},   // R
@@ -67,7 +67,7 @@ namespace reachability::blocks {
     }},
     common
   };
-  constexpr block<4, 2, 4, 5> S = {
+  inline constexpr block<4, 2, 4, 5> S = {
     {{
       {{{1, 1}, {0, 1}, {0, 0}, {-1, 0}}},   // 0
       {{{1, -1}, {1, 0}, {0, 0}, {0, 1}}},   // R
@@ -76,7 +76,7 @@ namespace reachability::blocks {
     }},
     common
   };
-  constexpr block<4, 2, 4, 5> J = {
+  inline constexpr block<4, 2, 4, 5> J = {
     {{
       {{{-1, 1}, {-1, 0}, {0, 0}, {1, 0}}}, // 0
       {{{1, 1}, {0, 1}, {0, 0}, {0, -1}}},  // R
@@ -85,7 +85,7 @@ namespace reachability::blocks {
     }},
     common
   };
-  constexpr block<4, 2, 4, 5> L = {
+  inline constexpr block<4, 2, 4, 5> L = {
     {{
       {{{-1, 0}, {0, 0}, {1, 0}, {1, 1}}},  // 0
       {{{0, 1}, {0, 0}, {0, -1}, {1, -1}}}, // R
@@ -94,7 +94,7 @@ namespace reachability::blocks {
     }},
     common
   };
-  constexpr block<1, 0, 4, 0> O_1 = {
+  inline constexpr block<1, 0, 4, 0> O_1 = {
     {{
       {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // 0
     }},
@@ -102,7 +102,7 @@ namespace reachability::blocks {
   };
   [[deprecated("use 1-status O please")]]
   [[maybe_unused]]
-  constexpr block<4, 2, 4, 5> O = {
+  inline constexpr block<4, 2, 4, 5> O = {
     {{
       {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // 0
       {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // R
@@ -132,7 +132,7 @@ namespace reachability::blocks {
       }}
     }}
   };
-  constexpr block<4, 2, 4, 5> I = {
+  inline constexpr block<4, 2, 4, 5> I = {
     {{
       {{{-1, 0}, {0, 0}, {1, 0}, {2, 0}}},   // 0
       {{{0, 0}, {0, 1}, {0, -1}, {0, -2}}},  // R

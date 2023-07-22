@@ -8,7 +8,7 @@
 #include <queue>
 
 namespace reachability {
-  inline namespace {
+  namespace {
     template<typename F, std::size_t... S>
     constexpr void static_for(F&& function, std::index_sequence<S...>) {
         int unpack[] = {0,
@@ -30,7 +30,7 @@ namespace reachability {
   #define CONSTEXPR_BITSET const
   #endif
   template <typename board_t, int W, int H>
-  CONSTEXPR_BITSET board_t L = []() constexpr {
+  CONSTEXPR_BITSET static inline board_t L = []() constexpr {
     board_t data;
     for (int i = 0; i < H; ++i) {
       data.set(W - 1, i);
@@ -38,7 +38,7 @@ namespace reachability {
     return ~data;
   }();
   template <typename board_t, int W, int H>
-  CONSTEXPR_BITSET board_t R = []() constexpr {
+  CONSTEXPR_BITSET static inline board_t R = []() constexpr {
     board_t data;
     for (int i = 0; i < H; ++i) {
       data.set(0, i);
@@ -51,9 +51,9 @@ namespace reachability {
   struct board {
     struct inv_board_t;
     struct board_t;
-    static constexpr const std::size_t W2 = (64 / W) * W;
-    static constexpr const std::size_t H2 = (H - 1) / (64 / W) + 1;
-    static constexpr const std::size_t DIFF = H2 * W2 - H * W;
+    static constexpr std::size_t W2 = (64 / W) * W;
+    static constexpr std::size_t H2 = (H - 1) / (64 / W) + 1;
+    static constexpr std::size_t DIFF = H2 * W2 - H * W;
     #define DEF_DUAL_OPERATOR(ret, op, param, expr2) \
       constexpr ret operator op(param) const { \
         ret result = *this; \
@@ -166,7 +166,7 @@ namespace reachability {
     #undef DEF_BOARD
     #undef DEF_OPERATOR
     #undef DEF_DUAL_OPERATOR
-    friend std::string to_string(const board_t &board) {
+    friend constexpr std::string to_string(const board_t &board) {
       std::string ret;
       for (int y = H - 1; y >= 0; --y) {
         for (int x = 0; x < W; ++x) {
@@ -176,7 +176,7 @@ namespace reachability {
       }
       return ret;
     }
-    friend std::string to_string(const inv_board_t &board1, const board_t &board2) {
+    friend constexpr std::string to_string(const inv_board_t &board1, const board_t &board2) {
       std::string ret;
       for (int y = H - 1; y >= 0; --y) {
         for (int x = 0; x < W; ++x) {
@@ -196,7 +196,7 @@ namespace reachability {
       }
       return ret;
     }
-    friend std::string to_string(const inv_board_t &board1, const inv_board_t &board2, const board_t &board_3) {
+    friend constexpr std::string to_string(const inv_board_t &board1, const inv_board_t &board2, const board_t &board_3) {
       std::string ret;
       for (int y = H - 1; y >= 0; --y) {
         for (int x = 0; x < W; ++x) {

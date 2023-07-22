@@ -101,6 +101,7 @@ int main() {
     "TSPIN", "DT", "BAD", "LZT", "4T"
   };
   const string name = "IJLOSTZ";
+  double binary_sum = 0, ordinary_sum = 0;
   for (size_t i = 0; i < board_names.size(); ++i) {
     cout << "BOARD " << board_names[i] << endl;
     const auto &b = boards[i];
@@ -116,8 +117,14 @@ int main() {
           cout << to_string(binary[i], ordinary[i], b.data) << endl;
         }
       }
-      cout << "  binary  : " << bench([&](){b.binary_bfs<reachability::coord{4, 20}>(binary, name[j]);}) << "ns" << endl;
-      cout << "  true ord: " << bench([&](){b.ordinary_bfs_without_binary(ordinary, name[j], {4, 20});}) << "ns" << endl;
+      auto binary_time = bench([&](){b.binary_bfs<reachability::coord{4, 20}>(binary, name[j]);});
+      binary_sum += binary_time;
+      cout << "  binary  : " << binary_time << "ns" << endl;
+      auto ordinary_time = bench([&](){b.ordinary_bfs_without_binary(ordinary, name[j], {4, 20});});
+      ordinary_sum += ordinary_time;
+      cout << "  true ord: " << ordinary_time << "ns" << endl;
     }
   }
+  cout << "TOTAL binary  : " << binary_sum << "ns" << endl;
+  cout << "TOTAL true ord: " << ordinary_sum << "ns" << endl;
 }
