@@ -582,16 +582,10 @@ struct board {
     return positions;
   }
   template <size_t N, array<coord, N> kick>
-  static constexpr array<inv_board_t, N> kick_positions(
-    const inv_board_t &start, const inv_board_t &end,
-    const array<inv_board_t, 5> &end_moved) {
+  static constexpr array<inv_board_t, N> kick_positions(const inv_board_t &start, const inv_board_t &end) {
     array<inv_board_t, N> positions;
     static_for<N>([&](auto i) {
-      if constexpr (kick[i][0] < -2 || kick[i][0] > 2) {
-        positions[i] = move_to_center<kick[i]>(end);
-      } else {
-        positions[i] = move_to_center<coord{0, kick[i][1]}>(end_moved[kick[i][0]+2]);
-      }
+      positions[i] = move_to_center<kick[i]>(end);
       positions[i] &= start;
     });
     inv_board_t temp = positions[0];
@@ -722,21 +716,12 @@ struct board {
       });
       return usable;
     }();
-    const array<array<inv_board_t, 5>, 4> usable_moved = [&](){
-      array<array<inv_board_t, 5>, 4> usable_moved;
-      static_for<4>([&](auto i) {
-        static_for<5>([&](auto j) {
-          usable_moved[i][j] = move_to_center<coord{int(j)-2, 0}>(usable[i]);
-        });
-      });
-      return usable_moved;
-    }();
     const array<array<array<inv_board_t, 5>, 3>, 4> kicks = [&](){
       array<array<array<inv_board_t, 5>, 3>, 4> kicks;
       static_for<4>([&](auto i) {
         static_for<3>([&](auto j) {
           constexpr auto target = (i + j + 1) % 4;
-          kicks[i][j] = kick_positions<5, block.kicks[i][j]>(usable[i], usable[target], usable_moved[target]);
+          kicks[i][j] = kick_positions<5, block.kicks[i][j]>(usable[i], usable[target]);
         });
       });
       return kicks;
