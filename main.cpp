@@ -395,7 +395,6 @@ struct board {
     }
     return lines;
   }
-  // TODO: finally move d to template parameter and remove redundant template parameters
   template <bool check = true, bool reverse = false, bool use_shift = false, class board_t>
   static constexpr board_t move_to_center(board_t board, const coord &d) {
     auto dx = d[0], dy = d[1];
@@ -485,9 +484,9 @@ struct board {
   template <size_t N, array<coord, N> mino>
   constexpr inv_board_t usable_positions() const {
     inv_board_t positions = ~inv_board_t();
-    for (const auto &coord : mino) {
-      positions &= move_to_center(inv_board_t{data}, coord);
-    }
+    static_for<N>([&](auto i) {
+      positions &= move_to_center<mino[i]>(inv_board_t{data});
+    });
     return positions;
   }
   template <size_t N>
