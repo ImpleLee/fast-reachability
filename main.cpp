@@ -179,10 +179,14 @@ constexpr void static_for(F&& function) {
     static_for(std::forward<F>(function), std::make_index_sequence<iterations>());
 }
 
+#if __cpp_lib_constexpr_bitset
+#define CONSTEXPR_BITSET constexpr
+#else
+#define CONSTEXPR_BITSET const
+#endif
+
 template <typename board_t, int W, int H>
-// should be constexpr
-// but constexpr-bitset requires C++23
-const board_t L = []() constexpr {
+CONSTEXPR_BITSET board_t L = []() constexpr {
   board_t data;
   for (int i = 0; i < H; ++i) {
     data.set(W - 1, i);
@@ -190,9 +194,7 @@ const board_t L = []() constexpr {
   return ~data;
 }();
 template <typename board_t, int W, int H>
-// should be constexpr
-// but constexpr-bitset requires C++23
-const board_t R = []() constexpr {
+CONSTEXPR_BITSET board_t R = []() constexpr {
   board_t data;
   for (int i = 0; i < H; ++i) {
     data.set(0, i);
