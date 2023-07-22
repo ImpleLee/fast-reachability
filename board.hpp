@@ -255,7 +255,7 @@ namespace reachability {
           board >>= move;
         }
       }
-      if (check && dx != 0) {
+      if constexpr (check && dx != 0) {
         board &= MASK<board_t, dx>;
       }
       return board;
