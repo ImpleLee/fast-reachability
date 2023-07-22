@@ -8,44 +8,57 @@
 #include <tuple>
 #include <cassert>
 #include <chrono>
+#include <type_traits>
 using namespace std;
 
-#define $ if (true)
-
 using coord = array<signed char, 2>;
-using mino = array<coord, 4>;
-using kick = array<coord, 5>;
 
 namespace blocks {
+template <int orientations, int rotations, int block_per_mino, int kick_per_rotation>
 struct block {
-  array<mino, 4> minos;
-  array<array<kick, 3>, 4> kicks;
+  using mino = array<coord, 4>;
+  using kick = array<coord, 5>;
+  static constexpr const int ORIENTATIONS = orientations;
+  static constexpr const int ROTATIONS = rotations;
+  static constexpr const int BLOCK_PER_MINO = block_per_mino;
+  static constexpr const int KICK_PER_ROTATION = kick_per_rotation;
+  [[no_unique_address]]
+  array<mino, orientations> minos;
+  [[no_unique_address]]
+  array<array<kick, rotations>, orientations> kicks;
+  static constexpr int rotation_target(int from, int rotation_num) {
+    if constexpr (orientations == 4 && rotations == 2) {
+      // cw & ccw
+      return (from + rotation_num * 2 + 1) % orientations;
+    }
+    return (from + rotation_num + 1) % orientations;
+  }
 };
 
-constexpr array<array<kick, 3>, 4> common = {{
+constexpr array<array<array<coord, 5>, 2>, 4> common = {{
   {{ // 0
     {{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}}},  // -> R
-    {{{0, 1}, {0, 1}, {0, 1}, {0, 1}, {0, 1}}},       // -> 2
+    // {{{0, 1}, {0, 1}, {0, 1}, {0, 1}, {0, 1}}},       // -> 2
     {{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}}}      // -> L
   }},
   {{ // R
     {{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}}},      // -> 2
-    {{{1, 0}, {1, 0}, {1, 0}, {1, 0}, {1, 0}}},       // -> L
+    // {{{1, 0}, {1, 0}, {1, 0}, {1, 0}, {1, 0}}},       // -> L
     {{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}}}       // -> 0
   }},
   {{ // 2
     {{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}}},     // -> L
-    {{{0, -1}, {0, -1}, {0, -1}, {0, -1}, {0, -1}}},  // -> 0
+    // {{{0, -1}, {0, -1}, {0, -1}, {0, -1}, {0, -1}}},  // -> 0
     {{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}}}   // -> R
   }},
   {{ // L
     {{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}},   // -> 0
-    {{{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}},  // -> R
+    // {{{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}},  // -> R
     {{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}}    // -> 2
   }}
 }};
 
-constexpr block T = {
+constexpr block<4, 2, 4, 5> T = {
   {{
     {{{-1, 0}, {0, 0}, {1, 0}, {0, 1}}},  // 0
     {{{0, 1}, {0, 0}, {0, -1}, {1, 0}}},  // R
@@ -54,7 +67,7 @@ constexpr block T = {
   }},
   common
 };
-constexpr block Z  = {
+constexpr block<4, 2, 4, 5> Z  = {
   {{
     {{{-1, 1}, {0, 1}, {0, 0}, {1, 0}}},   // 0
     {{{1, 1}, {1, 0}, {0, 0}, {0, -1}}},   // R
@@ -63,7 +76,7 @@ constexpr block Z  = {
   }},
   common
 };
-constexpr block S = {
+constexpr block<4, 2, 4, 5> S = {
   {{
     {{{1, 1}, {0, 1}, {0, 0}, {-1, 0}}},   // 0
     {{{1, -1}, {1, 0}, {0, 0}, {0, 1}}},   // R
@@ -72,7 +85,7 @@ constexpr block S = {
   }},
   common
 };
-constexpr block J = {
+constexpr block<4, 2, 4, 5> J = {
   {{
     {{{-1, 1}, {-1, 0}, {0, 0}, {1, 0}}}, // 0
     {{{1, 1}, {0, 1}, {0, 0}, {0, -1}}},  // R
@@ -81,7 +94,7 @@ constexpr block J = {
   }},
   common
 };
-constexpr block L = {
+constexpr block<4, 2, 4, 5> L = {
   {{
     {{{-1, 0}, {0, 0}, {1, 0}, {1, 1}}},  // 0
     {{{0, 1}, {0, 0}, {0, -1}, {1, -1}}}, // R
@@ -90,7 +103,15 @@ constexpr block L = {
   }},
   common
 };
-constexpr block O = {
+constexpr block<1, 0, 4, 0> O_1 = {
+  {{
+    {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // 0
+  }},
+  {}
+};
+[[deprecated("use 1-status O please")]]
+[[maybe_unused]]
+constexpr block<4, 2, 4, 5> O = {
   {{
     {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // 0
     {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // R
@@ -100,27 +121,27 @@ constexpr block O = {
   {{
     {{
       {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-    }},
-    {{
-      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
+      // {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
       {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
     }},
     {{
       {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
+      // {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
       {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
     }},
     {{
       {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
+      // {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
       {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
+    }},
+    {{
+      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
+      // {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
       {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
     }}
   }}
 };
-constexpr block I = {
+constexpr block<4, 2, 4, 5> I = {
   {{
     {{{-1, 0}, {0, 0}, {1, 0}, {2, 0}}},   // 0
     {{{0, 0}, {0, 1}, {0, -1}, {0, -2}}},  // R
@@ -130,39 +151,48 @@ constexpr block I = {
   {{
     {{
       {{{1, 0}, {-1, 0}, {2, 0}, {-1, -1}, {2, 2}}},
-      {{{1, 0}, {1, 0}, {1, 0}, {1, 0}, {1, 0}}},
+      // {{{1, 0}, {1, 0}, {1, 0}, {1, 0}, {1, 0}}},
       {{{0, -1}, {-1, -1}, {2, -1}, {-1, 1}, {2, -2}}},
     }},
     {{
       {{{0, -1}, {-1, -1}, {2, -1}, {-1, 1}, {2, -2}}},
-      {{{0, -1}, {0, -1}, {0, -1}, {0, -1}, {0, -1}}},
+      // {{{0, -1}, {0, -1}, {0, -1}, {0, -1}, {0, -1}}},
       {{{-1, 0}, {1, 0}, {-2, 0}, {1, 1}, {-2, -2}}},
     }},
     {{
       {{{-1, 0}, {1, 0}, {-2, 0}, {1, 1}, {-2, -2}}},
-      {{{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}},
+      // {{{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}},
       {{{0, 1}, {1, 1}, {-2, 1}, {1, -1}, {-2, 2}}},
     }},
     {{
       {{{0, 1}, {1, 1}, {-2, 1}, {1, -1}, {-2, 2}}},
-      {{{0, 1}, {0, 1}, {0, 1}, {0, 1}, {0, 1}}},
+      // {{{0, 1}, {0, 1}, {0, 1}, {0, 1}, {0, 1}}},
       {{{1, 0}, {-1, 0}, {2, 0}, {-1, -1}, {2, 2}}},
     }}
   }}
 };
-}
 
-static constexpr blocks::block get_block(char name) {
-  switch (name) {
-    case 'T': return blocks::T;
-    case 'Z': return blocks::Z;
-    case 'S': return blocks::S;
-    case 'J': return blocks::J;
-    case 'L': return blocks::L;
-    case 'O': return blocks::O;
-    case 'I': return blocks::I;
+template <typename F>
+constexpr void call_with_block(char ch, F f) {
+  switch (ch) {
+    case 'T': f.template operator()<T>(); return;
+    case 'Z': f.template operator()<Z>(); return;
+    case 'S': f.template operator()<S>(); return;
+    case 'J': f.template operator()<J>(); return;
+    case 'L': f.template operator()<L>(); return;
+    case 'O': f.template operator()<O_1>(); return;
+    case 'I': f.template operator()<I>(); return;
     default: assert(false);
   }
+}
+
+constexpr int get_orientations(char ch) {
+  int ret = 0;
+  call_with_block(ch, [&]<block b>() {
+    ret = b.ORIENTATIONS;
+  });
+  return ret;
+}
 }
 
 template<typename F, std::size_t... S>
@@ -319,6 +349,8 @@ struct board {
   DEF_BOARD(board_t, inv_board_t);
   DEF_BOARD(inv_board_t, board_t);
   #undef DEF_BOARD
+  #undef DEF_OPERATOR
+  #undef DEF_DUAL_OPERATOR
   friend string to_string(const board_t &board) {
     string ret;
     for (int y = H - 1; y >= 0; --y) {
@@ -428,10 +460,10 @@ struct board {
     }
     return board;
   }
-  template <size_t N, array<coord, N> mino>
+  template <array mino>
   constexpr inv_board_t usable_positions() const {
     inv_board_t positions = ~inv_board_t();
-    static_for<N>([&](auto i) {
+    static_for<tuple_size_v<decltype(mino)>>([&](auto i) {
       positions &= move_to_center<mino[i]>(inv_board_t{data});
     });
     return positions;
@@ -439,8 +471,9 @@ struct board {
   static constexpr inv_board_t landable_positions(const inv_board_t &usable) {
     return usable & ~(usable << W);
   }
-  template <size_t N, array<coord, N> kick>
-  static constexpr array<inv_board_t, N> kick_positions(const inv_board_t &start, const inv_board_t &end) {
+  template <array kick>
+  static constexpr array<inv_board_t, tuple_size_v<decltype(kick)>> kick_positions(const inv_board_t &start, const inv_board_t &end) {
+    constexpr size_t N = tuple_size_v<decltype(kick)>;
     array<inv_board_t, N> positions;
     static_for<N>([&](auto i) {
       positions[i] = move_to_center<kick[i]>(end);
@@ -453,33 +486,37 @@ struct board {
     }
     return positions;
   }
+  template <unsigned KICKS, unsigned ROTATIONS>
   struct info {
     inv_board_t usable;
     inv_board_t ret;
-    array<inv_board_t, 5> kicks[3];
+    array<inv_board_t, KICKS> kicks[ROTATIONS];
   };
   template <blocks::block block, coord start, bool use_optimize=false>
-  constexpr array<inv_board_t, 4> binary_bfs() const {
-    info info[4];
-    static_for<4>([&](auto i) {
-      info[i].usable = usable_positions<4, block.minos[i]>();
+  constexpr array<inv_board_t, block.ORIENTATIONS> binary_bfs() const {
+    constexpr int orientations = block.ORIENTATIONS;
+    constexpr int rotations = block.ROTATIONS;
+    constexpr int kicks = block.KICK_PER_ROTATION;
+    info<kicks, rotations> info[orientations];
+    static_for<orientations>([&](auto i) {
+      info[i].usable = usable_positions<block.minos[i]>();
     });
-    static_for<4>([&](auto i) {
-      static_for<3>([&](auto j) {
-        constexpr auto target = (i + j + 1) % 4;
-        info[i].kicks[j] = kick_positions<5, block.kicks[i][j]>(info[i].usable, info[target].usable);
+    static_for<orientations>([&](auto i) {
+      static_for<rotations>([&](auto j) {
+        constexpr auto target = block.rotation_target(i, j);
+        info[i].kicks[j] = kick_positions<block.kicks[i][j]>(info[i].usable, info[target].usable);
       });
     });
-    constexpr const coord MOVES[] = {{-1, 0}, {1, 0}, {0, -1}};
+    constexpr array<coord, 3> MOVES = {{{-1, 0}, {1, 0}, {0, -1}}};
     if (!info[0].usable.get(start[0], start[1])) {
       return {};
     }
-    bool need_visit[4] = {true, false, false, false};
-    array<inv_board_t, 4> cache;
+    bool need_visit[orientations] = { true };
+    array<inv_board_t, orientations> cache;
     cache[0].set(start[0], start[1]);
     for (bool updated = true; updated;) {
       updated = false;
-      static_for<4>([&](auto i){
+      static_for<orientations>([&](auto i){
         if (!need_visit[i]) {
           return;
         }
@@ -487,7 +524,7 @@ struct board {
         info[i].ret = cache[i];
         for (bool updated2 = true; updated2;) {
           updated2 = false;
-          static_for<3>([&](auto j){
+          static_for<MOVES.size()>([&](auto j){
             constexpr auto move = MOVES[j];
             inv_board_t mask = info[i].usable & ~info[i].ret;
             if (!mask.any()) {
@@ -502,10 +539,10 @@ struct board {
           });
         }
         cache[i] = info[i].ret;
-        static_for<3>([&](auto j){
-          constexpr int target = (i + j + 1) % 4;
+        static_for<rotations>([&](auto j){
+          constexpr int target = block.rotation_target(i, j);
           inv_board_t to;
-          static_for<5>([&](auto k){
+          static_for<kicks>([&](auto k){
             inv_board_t from = info[i].ret & info[i].kicks[j][k];
             to |= move_to_center<block.kicks[i][j][k], true, false>(from);
           });
@@ -519,26 +556,23 @@ struct board {
         });
       });
     }
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < orientations; ++i) {
       cache[i] &= landable_positions(info[i].usable);
     }
     return cache;
   }
   template <coord start, bool use_optimize=false>
   [[gnu::noinline]]
-  constexpr array<inv_board_t, 4> binary_bfs(char block) const {
-    switch (block) {
-      case 'T': return binary_bfs<blocks::T, start, use_optimize>();
-      case 'Z': return binary_bfs<blocks::Z, start, use_optimize>();
-      case 'S': return binary_bfs<blocks::S, start, use_optimize>();
-      case 'J': return binary_bfs<blocks::J, start, use_optimize>();
-      case 'L': return binary_bfs<blocks::L, start, use_optimize>();
-      case 'O': return binary_bfs<blocks::O, start, use_optimize>();
-      case 'I': return binary_bfs<blocks::I, start, use_optimize>();
-      default: assert(false);
-    }
+  constexpr void binary_bfs(inv_board_t *ret, char block) const {
+    blocks::call_with_block(block, [&]<blocks::block B>() {
+      auto info = binary_bfs<B, start, use_optimize>();
+      for (size_t i = 0; i < info.size(); ++i) {
+        ret[i] = info[i];
+      }
+    });
   }
-  array<inv_board_t, 4> ordinary_bfs_without_binary(const blocks::block &block, const coord &start) const {
+  auto ordinary_bfs_without_binary(const auto &block, const coord &start) const {
+    constexpr auto orientations = remove_cvref_t<decltype(block)>::ORIENTATIONS;
     bool my_data[H][W];
     for (int y = 0; y < H; ++y) {
       for (int x = 0; x < W; ++x) {
@@ -556,15 +590,8 @@ struct board {
       return true;
     };
     constexpr const coord MOVES[] = {{0, -1}, {-1, 0}, {1, 0}};
-    bool visited[4][H][W];
-    for (int i = 0; i < 4; ++i) {
-      for (int y = 0; y < H; ++y) {
-        for (int x = 0; x < W; ++x) {
-          visited[i][y][x] = false;
-        }
-      }
-    }
-    array<inv_board_t, 4> ret;
+    bool visited[orientations][H][W] = {};
+    array<inv_board_t, orientations> ret;
     if (!usable(0, start[0], start[1])) {
       return ret;
     }
@@ -582,10 +609,9 @@ struct board {
             ret[i].set(x + dx, y + dy);
         }
       }
-      for (int j = 0; j < 3; ++j) {
-        const auto target = (i + j + 1) % 4;
-        for (int k = 0; k < 5; ++k) {
-          auto &[dx, dy] = block.kicks[i][j][k];
+      for (int j = 0; j < block.ROTATIONS; ++j) {
+        const auto target = block.rotation_target(i, j);
+        for (auto &[dx, dy] : block.kicks[i][j]) {
           if (in_range(x + dx, y + dy) && usable(target, x + dx, y + dy)) {
             if (!visited[target][y + dy][x + dx]) {
               visited[target][y + dy][x + dx] = true;
@@ -599,6 +625,15 @@ struct board {
       }
     }
     return ret;
+  }
+  [[gnu::noinline]]
+  constexpr void ordinary_bfs_without_binary(inv_board_t *ret, char block, const coord &start) const {
+    blocks::call_with_block(block, [&]<blocks::block B>() {
+      auto info = ordinary_bfs_without_binary(B, start);
+      for (size_t i = 0; i < info.size(); ++i) {
+        ret[i] = info[i];
+      }
+    });
   }
 };
 
@@ -702,17 +737,18 @@ int main() {
     const auto &b = boards[i];
     for (int j = 0; j < 7; ++j) {
       cout << " BLOCK " << name[j] << endl;
-      const auto &B = get_block(name[j]);
-      auto binary = b.binary_bfs<coord{4, 20}>(name[j]);
-      auto ordinary_without_binary = b.ordinary_bfs_without_binary(B, {4, 20});
-      for (int i = 0; i < 4; ++i) {
-        if (binary[i] != ordinary_without_binary[i]) {
-          cout << "  binary[" << i << "] != ordinary_without_binary[" << i << "]" << endl;
-          cout << to_string(binary[i], ordinary_without_binary[i], b.data) << endl;
+      remove_cvref_t<decltype(b)>::inv_board_t binary[4], ordinary[4];
+      int length = blocks::get_orientations(name[j]);
+      b.binary_bfs<coord{4, 20}>(binary, name[j]);
+      b.ordinary_bfs_without_binary(ordinary, name[j], {4, 20});
+      for (int i = 0; i < length; ++i) {
+        if (binary[i] != ordinary[i]) {
+          cout << "  binary[" << i << "] != ordinary[" << i << "]" << endl;
+          cout << to_string(binary[i], ordinary[i], b.data) << endl;
         }
       }
-      cout << "  binary  : " << bench([&](){b.binary_bfs<coord{4, 20}>(name[j]);}) << "ns" << endl;
-      cout << "  true ord: " << bench([&](){b.ordinary_bfs_without_binary(B, {4, 20});}) << "ns" << endl;
+      cout << "  binary  : " << bench([&](){b.binary_bfs<coord{4, 20}>(binary, name[j]);}) << "ns" << endl;
+      cout << "  true ord: " << bench([&](){b.ordinary_bfs_without_binary(ordinary, name[j], {4, 20});}) << "ns" << endl;
     }
   }
 }
