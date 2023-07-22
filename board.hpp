@@ -218,43 +218,29 @@ namespace reachability {
     #else
     #define CONSTEXPR_BITSET const
     #endif
-    template <typename board_t>
-    CONSTEXPR_BITSET static inline board_t L = []() constexpr {
-      board_t data;
-      for (int i = 0; i < H; ++i) {
-        data.set(W - 1, i);
+    template <typename my_board_t, int dx>
+    CONSTEXPR_BITSET static inline my_board_t MASK = []() constexpr {
+      my_board_t mask;
+      if (dx < 0) {
+        for (int i = 0; i < -dx; ++i) {
+          for (int j = 0; j < H; ++j) {
+            mask.set(i, j);
+          }
+        }
+      } else if (dx > 0) {
+        for (int i = 0; i < dx; ++i) {
+          for (int j = 0; j < H; ++j) {
+            mask.set(W - 1 - i, j);
+          }
+        }
       }
-      return ~data;
-    }();
-    template <typename board_t>
-    CONSTEXPR_BITSET static inline board_t R = []() constexpr {
-      board_t data;
-      for (int i = 0; i < H; ++i) {
-        data.set(0, i);
-      }
-      return ~data;
+      return ~mask;
     }();
     #undef CONSTEXPR_BITSET
     template <coord d, bool reverse = false, bool check = true, class board_t>
     static constexpr board_t move_to_center(board_t board) {
-      auto dx = d[0], dy = d[1];
-      if (reverse) {
-        dx = -dx;
-        dy = -dy;
-      }
-      board_t mask;
-      if (check && dx != 0) {
-        mask = ~board_t();
-        if (dx < 0) {
-          for (int i = 0; i < -dx; ++i) {
-            mask &= R<board_t> << i;
-          }
-        } else if (dx > 0) {
-          for (int i = 0; i < dx; ++i) {
-            mask &= L<board_t> >> i;
-          }
-        }
-      }
+      constexpr auto dx = reverse ? -d[0] : d[0];
+      constexpr auto dy = reverse ? -d[1] : d[1];
       int move = dy * W + dx;
       if (dy == 0) {
         if (move < 0) {
@@ -270,7 +256,7 @@ namespace reachability {
         }
       }
       if (check && dx != 0) {
-        board &= mask;
+        board &= MASK<board_t, dx>;
       }
       return board;
     }
