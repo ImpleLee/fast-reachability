@@ -767,7 +767,8 @@ struct board {
           if (det.any()) {
             cache[target] |= to;
             need_visit[target] = true;
-            updated = true;
+            if (target < i)
+              updated = true;
           }
         });
       });
