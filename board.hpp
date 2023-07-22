@@ -1,11 +1,15 @@
 #pragma once
 #include "block.hpp"
+#include <limits>
 #include <string>
 #include <bitset>
 #include <array>
 #include <tuple>
 #include <type_traits>
 #include <queue>
+#include <cstdint>
+#include <numeric>
+#include <bit>
 
 namespace reachability {
   namespace {
@@ -24,13 +28,31 @@ namespace reachability {
     }
   }
 
-  template <int W, int H>
+  namespace {
+    using under_t = std::uint64_t;
+    static constexpr inline auto under_bits = std::numeric_limits<under_t>::digits;
+    template <int i>
+    static constexpr inline under_t one = [](){
+      static_assert(i >= 0 && i < under_bits);
+      return under_t(1) << i;
+    }();
+  }
+
+  template <unsigned W, unsigned H>
   struct board {
     struct inv_board_t;
     struct board_t;
-    static constexpr std::size_t W2 = (64 / W) * W;
-    static constexpr std::size_t H2 = (H - 1) / (64 / W) + 1;
-    static constexpr std::size_t DIFF = H2 * W2 - H * W;
+    static constexpr auto lines_per_under = under_bits / W;
+    static constexpr auto used_per_under = lines_per_under * W;
+    static constexpr auto num_of_under = (H - 1) / lines_per_under + 1;
+    static constexpr auto last = num_of_under - 1;
+    static constexpr auto remaining_per_under = under_bits - used_per_under;
+    static constexpr auto mask = (~under_t(0)) >> remaining_per_under;
+    static constexpr auto remaining_in_last = num_of_under * used_per_under - H * W;
+    static constexpr auto last_mask = mask >> remaining_in_last;
+    static constexpr std::array<unsigned, 2> convert(int x, int y) {
+      return {(y % lines_per_under) * W + x, y / lines_per_under};
+    }
     #define DEF_DUAL_OPERATOR(ret, op, param, expr2) \
       constexpr ret operator op(param) const { \
         ret result = *this; \
@@ -39,7 +61,7 @@ namespace reachability {
       }
     #define DEF_OPERATOR(ret, op, param, expr, expr2) \
       constexpr ret &operator op##=(param) { \
-        for (std::size_t i = 0; i < H2; ++i) { \
+        for (std::size_t i = 0; i < num_of_under; ++i) { \
           data[i] op##= expr; \
         } \
         return *this; \
@@ -50,49 +72,53 @@ namespace reachability {
         friend struct name2; \
         constexpr name() { } \
         constexpr name(const std::string &s) { \
-          for (std::size_t i = 0; i + 1 < H2; ++i) { \
-            data[i] = std::bitset<W2>{s, W * H - (i + 1) * W2, W2, ' ', 'X'}; \
+          for (std::size_t i = 0; i < last; ++i) { \
+            data[i] = std::bitset<used_per_under>{s, W * H - (i + 1) * used_per_under, used_per_under, ' ', 'X'}.to_ullong(); \
           } \
-          data[H2 - 1] = std::bitset<W2>{s, 0, W2 - DIFF, ' ', 'X'}; \
+          data[last] = std::bitset<used_per_under>{s, 0, used_per_under - remaining_in_last, ' ', 'X'}.to_ullong(); \
         } \
         constexpr explicit name(const name2 &other) { \
-          for (std::size_t i = 0; i < H2; ++i) \
+          for (std::size_t i = 0; i < num_of_under; ++i) \
             data[i] = ~other.data[i]; \
         } \
         constexpr name operator~() const { \
           name other; \
-          for (std::size_t i = 0; i < H2; ++i) { \
+          for (std::size_t i = 0; i < num_of_under; ++i) { \
             other.data[i] = ~data[i]; \
           } \
           return other; \
         } \
-        constexpr void set(int x, int y) { \
-          data[y / (64 / W)].set((y % (64 / W)) * W + x); \
+        template <int x, int y> \
+        constexpr void set() { \
+          constexpr auto a = convert(x, y); \
+          data[a[1]] |= one<a[0]>; \
         } \
-        constexpr int get(int x, int y) const { \
+        template <int x, int y> \
+        constexpr int get() const { \
           if ((x < 0) || (x >= W) || (y < 0) || (y >= H)) { \
             return 2; \
           } \
-          return data[y / (64 / W)][(y % (64 / W)) * W + x]; \
+          constexpr auto a = convert(x, y); \
+          return data[a[1]] & one<a[0]> ? 1 : 0; \
         } \
         constexpr bool any() const { \
-          for (std::size_t i = 0; i + 1 < H2; ++i) { \
-            if (data[i].any()) { \
+          for (std::size_t i = 0; i < last; ++i) { \
+            if (data[i] & mask) { \
               return true; \
             } \
           } \
-          if (((data[H2 - 1] << DIFF) >> DIFF).any()) { \
+          if (data[last] & last_mask) { \
             return true; \
           } \
           return false; \
         } \
         constexpr bool operator!=(const name &other) const { \
-          for (std::size_t i = 0; i + 1 < H2; ++i) { \
-            if (data[i] != other.data[i]) { \
+          for (std::size_t i = 0; i < last; ++i) { \
+            if ((data[i] ^ other.data[i]) & mask) { \
               return true; \
             } \
           } \
-          if (((data[H2 - 1] << DIFF) >> DIFF) != ((other.data[H2 - 1] << DIFF) >> DIFF)) { \
+          if ((data[last] ^ other.data[last]) & last_mask) { \
             return true; \
           } \
           return false; \
@@ -100,43 +126,70 @@ namespace reachability {
         DEF_OPERATOR(name, &, const name &rhs, rhs.data[i], rhs) \
         DEF_OPERATOR(name, |, const name &rhs, rhs.data[i], rhs) \
         constexpr name & operator>>=(std::size_t i) { \
-          data[H2 - 1] <<= DIFF; \
-          data[H2 - 1] >>= DIFF; \
-          for (std::size_t j = 0; j < H2; ++j) { \
+          for (std::size_t j = 0; j < last; ++j) { \
+            data[j] &= mask; \
             data[j] >>= i; \
-            if (j + 1 < H2) { \
-              data[j] |= data[j + 1] << (W2 - i); \
-            } \
+            data[j] |= data[j + 1] << (used_per_under - i); \
           } \
+          data[last] &= last_mask; \
+          data[last] >>= i; \
           return *this; \
         } \
-        constexpr name & right_shift(std::size_t i) { \
-          data[H2 - 1] <<= DIFF; \
-          data[H2 - 1] >>= DIFF; \
-          for (std::size_t j = 0; j < H2; ++j) { \
+        template <std::size_t i> \
+        constexpr name & right_shift_carry() { \
+          static_for<last>([&](auto j) { \
+            data[j] &= mask; \
             data[j] >>= i; \
-          } \
+            data[j] |= data[j + 1] << (used_per_under - i); \
+          }); \
+          data[last] &= last_mask; \
+          data[last] >>= i; \
+          return *this; \
+        } \
+        template <std::size_t i> \
+        constexpr name & right_shift() { \
+          static_for<last>([&](auto j) { \
+            data[j] &= mask; \
+            data[j] >>= i; \
+          }); \
+          data[last] &= last_mask;\
+          data[last] >>= i; \
           return *this; \
         } \
         constexpr name & operator<<=(std::size_t i) { \
-          for (std::size_t j = H2 - 1; j < H2; --j) { \
-            data[j] <<= i; \
-            if (j > 0) { \
-              data[j] |= data[j - 1] >> (W2 - i); \
-            } \
+          for (std::size_t j = 0; j < last; ++j) { \
+            data[j] &= mask; \
           } \
+          for (std::size_t j = last; j > 0; --j) { \
+            data[j] <<= i; \
+            data[j] |= data[j - 1] >> (used_per_under - i); \
+          } \
+          data[0] <<= i; \
           return *this; \
         } \
-        constexpr name & left_shift(std::size_t i) { \
-          for (std::size_t j = H2 - 1; j < H2; --j) { \
+        template <std::size_t i> \
+        constexpr name & left_shift_carry() { \
+          static_for<last>([&](auto j) { \
+            data[j] &= mask; \
+          }); \
+          static_for<last>([&](auto j) { \
+            data[last - j] <<= i; \
+            data[last - j] |= data[last - j - 1] >> (used_per_under - i); \
+          }); \
+          data[0] <<= i; \
+          return *this; \
+        } \
+        template <std::size_t i> \
+        constexpr name & left_shift() { \
+          static_for<num_of_under>([&](auto j) { \
             data[j] <<= i; \
-          } \
+          }); \
           return *this; \
         } \
         DEF_DUAL_OPERATOR(name, >>, std::size_t j, j) \
         DEF_DUAL_OPERATOR(name, <<, std::size_t j, j) \
       private: \
-        std::array<std::bitset<W2>, H2> data; \
+        std::array<under_t, num_of_under> data = {}; \
       }
     DEF_BOARD(board_t, inv_board_t);
     DEF_BOARD(inv_board_t, board_t);
@@ -145,47 +198,65 @@ namespace reachability {
     #undef DEF_DUAL_OPERATOR
     friend constexpr std::string to_string(const board_t &board) {
       std::string ret;
-      for (int y = H - 1; y >= 0; --y) {
-        for (int x = 0; x < W; ++x) {
-          ret += board.get(x, y) ? "[]" : "  ";
-        }
-        ret += '\n';
-      }
+      static_for<H>([&](auto y) {
+        std::string this_ret;
+        static_for<W>([&](auto x) {
+          this_ret += board.template get<x, y>() ? "[]" : "  ";
+        });
+        this_ret += '\n';
+        ret = this_ret + ret;
+      });
+      return ret;
+    }
+    friend constexpr std::string to_string(const inv_board_t &board) {
+      std::string ret;
+      static_for<H>([&](auto y) {
+        std::string this_ret;
+        static_for<W>([&](auto x) {
+          this_ret += board.template get<x, y>() ? "<>" : "  ";
+        });
+        this_ret += '\n';
+        ret = this_ret + ret;
+      });
       return ret;
     }
     friend constexpr std::string to_string(const inv_board_t &board1, const board_t &board2) {
       std::string ret;
-      for (int y = H - 1; y >= 0; --y) {
-        for (int x = 0; x < W; ++x) {
-          bool b1 = board1.get(x, y);
-          bool b2 = board2.get(x, y);
+      static_for<H>([&](auto y) {
+        std::string this_ret;
+        static_for<W>([&](auto x) {
+          bool b1 = board1.template get<x, y>();
+          bool b2 = board2.template get<x, y>();
           if (b1 && b2) {
-            ret += "%%";
+            this_ret += "%%";
           } else if (b1) {
-            ret += "..";
+            this_ret += "..";
           } else if (b2) {
-            ret += "[]";
+            this_ret += "[]";
           } else {
-            ret += "  ";
+            this_ret += "  ";
           }
-        }
-        ret += '\n';
-      }
+        });
+        this_ret += '\n';
+        ret = this_ret + ret;
+      });
       return ret;
     }
     friend constexpr std::string to_string(const inv_board_t &board1, const inv_board_t &board2, const board_t &board_3) {
       std::string ret;
-      for (int y = H - 1; y >= 0; --y) {
-        for (int x = 0; x < W; ++x) {
-          bool tested[2] = {bool(board1.get(x, y)), bool(board2.get(x, y))};
-          bool b3 = board_3.get(x, y);
+      static_for<H>([&](auto y) {
+        std::string this_ret;
+        static_for<W>([&](auto x) {
+          bool tested[2] = {bool(board1.template get<x, y>()), bool(board2.template get<x, y>())};
+          bool b3 = board_3.template get<x, y>();
           std::string symbols = "  <>[]%%";
           for (int i = 0; i < 2; ++i) {
-            ret += symbols[b3 * 4 + tested[i] * 2 + i];
+            this_ret += symbols[b3 * 4 + tested[i] * 2 + i];
           }
-        }
-        ret += '\n';
-      }
+        });
+        this_ret += '\n';
+        ret = this_ret + ret;
+      });
       return ret;
     }
     board_t data;
@@ -199,60 +270,58 @@ namespace reachability {
     }
     constexpr int clear_full_lines() {
       auto board = data;
-      int i = 1;
-      for (; (W >> 1) >= i; i <<= 1) {
-        board &= board >> i;
-      }
-      board &= board >> (W - i);
+      constexpr int needed = std::numeric_limits<decltype(W)>::digits - std::countl_zero(W) - 1;
+      static_for<needed>([&](auto i) {
+        auto temp = board;
+        temp.template right_shift<1 << i>();
+        board &= temp;
+      });
+      auto temp = board;
+      temp.template right_shift<W - (1 << needed)>();
+      board &= temp;
       int lines = 0;
-      for (int y = 0; y < H; ++y) {
-        if (board.get(0, y)) {
+      static_for<H>([&](auto y){
+        if (board.template get<0, y>()) {
           data = remove_range(data, (y - lines) * W, (y - lines + 1) * W);
           ++lines;
         }
-      }
+      });
       return lines;
     }
-    #if __cpp_lib_constexpr_bitset
-    #define CONSTEXPR_BITSET constexpr
-    #else
-    #define CONSTEXPR_BITSET const
-    #endif
     template <typename my_board_t, int dx>
-    CONSTEXPR_BITSET static inline my_board_t MASK = []() constexpr {
+    static constexpr my_board_t MASK = []() consteval {
       my_board_t mask;
-      if (dx < 0) {
-        for (int i = 0; i < -dx; ++i) {
-          for (int j = 0; j < H; ++j) {
-            mask.set(i, j);
-          }
-        }
-      } else if (dx > 0) {
-        for (int i = 0; i < dx; ++i) {
-          for (int j = 0; j < H; ++j) {
-            mask.set(W - 1 - i, j);
-          }
-        }
+      if constexpr (dx < 0) {
+        static_for<-dx>([&](auto i) {
+          static_for<H>([&](auto j) {
+            mask.template set<i, j>();
+          });
+        });
+      } else if constexpr (dx > 0) {
+        static_for<dx>([&](auto i) {
+          static_for<H>([&](auto j) {
+            mask.template set<W - 1 - i, j>();
+          });
+        });
       }
       return ~mask;
     }();
-    #undef CONSTEXPR_BITSET
     template <coord d, bool reverse = false, bool check = true, class board_t>
     static constexpr board_t move_to_center(board_t board) {
       constexpr auto dx = reverse ? -d[0] : d[0];
       constexpr auto dy = reverse ? -d[1] : d[1];
-      int move = dy * W + dx;
+      constexpr int move = dy * W + dx;
       if (dy == 0) {
-        if (move < 0) {
-          board.left_shift(-move);
+        if constexpr (move < 0) {
+          board.template left_shift<-move>();
         } else {
-          board.right_shift(move);
+          board.template right_shift<move>();
         }
       } else {
-        if (move < 0) {
-          board <<= -move;
+        if constexpr (move < 0) {
+          board.template left_shift_carry<-move>();
         } else {
-          board >>= move;
+          board.template right_shift_carry<move>();
         }
       }
       if constexpr (check && dx != 0) {
@@ -263,13 +332,16 @@ namespace reachability {
     template <std::array mino>
     constexpr inv_board_t usable_positions() const {
       inv_board_t positions = ~inv_board_t();
+      inv_board_t temp = inv_board_t{data};
       static_for<std::tuple_size_v<decltype(mino)>>([&](auto i) {
-        positions &= move_to_center<mino[i]>(inv_board_t{data});
+        positions &= move_to_center<mino[i]>(temp);
       });
       return positions;
     }
     static constexpr inv_board_t landable_positions(const inv_board_t &usable) {
-      return usable & ~(usable << W);
+      auto temp = usable;
+      temp.template left_shift_carry<W>();
+      return usable & ~temp;
     }
     template <std::array kick>
     static constexpr std::array<inv_board_t, std::tuple_size_v<decltype(kick)>> kick_positions(const inv_board_t &start, const inv_board_t &end) {
@@ -308,12 +380,12 @@ namespace reachability {
         });
       });
       constexpr std::array<coord, 3> MOVES = {{{-1, 0}, {1, 0}, {0, -1}}};
-      if (!info[0].usable.get(start[0], start[1])) {
+      if (!info[0].usable.template get<start[0], start[1]>()) {
         return {};
       }
       bool need_visit[orientations] = { true };
       std::array<inv_board_t, orientations> cache;
-      cache[0].set(start[0], start[1]);
+      cache[0].template set<start[0], start[1]>();
       for (bool updated = true; updated;) {
         updated = false;
         static_for<orientations>([&](auto i){
@@ -374,13 +446,13 @@ namespace reachability {
     auto ordinary_bfs_without_binary(const auto &block, const coord &start) const {
       constexpr auto orientations = std::remove_cvref_t<decltype(block)>::ORIENTATIONS;
       bool my_data[H][W];
-      for (int y = 0; y < H; ++y) {
-        for (int x = 0; x < W; ++x) {
-          my_data[y][x] = data.get(x, y);
-        }
-      }
+      static_for<H>([&](auto y) {
+        static_for<W>([&](auto x) {
+          my_data[y][x] = data.template get<x, y>();
+        });
+      });
       auto in_range = [](int x, int y) {
-        return 0 <= x && x < W && 0 <= y && y < H;
+        return 0 <= x && unsigned(x) < W && 0 <= y && unsigned(y) < H;
       };
       auto usable = [&](int i, int x, int y) {
         for (const auto &[dx, dy] : block.minos[i]) {
@@ -391,9 +463,9 @@ namespace reachability {
       };
       constexpr const coord MOVES[] = {{0, -1}, {-1, 0}, {1, 0}};
       bool visited[orientations][H][W] = {};
-      std::array<inv_board_t, orientations> ret;
+      bool ret[orientations][H][W] = {};
       if (!usable(0, start[0], start[1])) {
-        return ret;
+        return std::array<inv_board_t, orientations>{};
       }
       visited[0][start[1]][start[0]] = true;
       std::queue<std::tuple<int, int, int>> q;
@@ -406,7 +478,7 @@ namespace reachability {
             visited[i][y + dy][x + dx] = true;
             q.emplace(x + dx, y + dy, i);
             if (!usable(i, x + dx, y + dy - 1))
-              ret[i].set(x + dx, y + dy);
+              ret[i][y + dy][x + dx] = true;
           }
         }
         for (int j = 0; j < block.ROTATIONS; ++j) {
@@ -417,14 +489,24 @@ namespace reachability {
                 visited[target][y + dy][x + dx] = true;
                 q.emplace(x + dx, y + dy, target);
                 if (!usable(target, x + dx, y + dy - 1))
-                  ret[target].set(x + dx, y + dy);
+                  ret[target][y + dy][x + dx] = true;
               }
               break;
             }
           }
         }
       }
-      return ret;
+      std::array<inv_board_t, orientations> true_ret;
+      static_for<orientations>([&](auto i) {
+        static_for<H>([&](auto y) {
+          static_for<W>([&](auto x) {
+            if (ret[i][y][x]) {
+              true_ret[i].template set<x, y>();
+            }
+          });
+        });
+      });
+      return true_ret;
     }
     [[gnu::noinline]]
     constexpr void ordinary_bfs_without_binary(inv_board_t *ret, char block, const coord &start) const {
