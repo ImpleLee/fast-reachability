@@ -358,29 +358,24 @@ namespace reachability {
       }
       return positions;
     }
-    template <unsigned KICKS, unsigned ROTATIONS>
-    struct info {
-      inv_board_t usable;
-      inv_board_t ret;
-      std::array<inv_board_t, KICKS> kicks[ROTATIONS];
-    };
     template <blocks::block block, coord start, bool use_optimize=false>
     constexpr std::array<inv_board_t, block.ORIENTATIONS> binary_bfs() const {
       constexpr int orientations = block.ORIENTATIONS;
       constexpr int rotations = block.ROTATIONS;
       constexpr int kicks = block.KICK_PER_ROTATION;
-      info<kicks, rotations> info[orientations];
+      inv_board_t usable[orientations];
+      std::array<inv_board_t, kicks> kicks2[orientations][rotations];
       static_for<orientations>([&](auto i) {
-        info[i].usable = usable_positions<block.minos[i]>();
+        usable[i] = usable_positions<block.minos[i]>();
       });
       static_for<orientations>([&](auto i) {
         static_for<rotations>([&](auto j) {
           constexpr auto target = block.rotation_target(i, j);
-          info[i].kicks[j] = kick_positions<block.kicks[i][j]>(info[i].usable, info[target].usable);
+          kicks2[i][j] = kick_positions<block.kicks[i][j]>(usable[i], usable[target]);
         });
       });
       constexpr std::array<coord, 3> MOVES = {{{-1, 0}, {1, 0}, {0, -1}}};
-      if (!info[0].usable.template get<start[0], start[1]>()) {
+      if (!usable[0].template get<start[0], start[1]>()) {
         return {};
       }
       bool need_visit[orientations] = { true };
@@ -393,29 +388,27 @@ namespace reachability {
             return;
           }
           need_visit[i] = false;
-          info[i].ret = cache[i];
           for (bool updated2 = true; updated2;) {
             updated2 = false;
             static_for<MOVES.size()>([&](auto j){
               constexpr auto move = MOVES[j];
-              inv_board_t mask = info[i].usable & ~info[i].ret;
+              inv_board_t mask = usable[i] & ~cache[i];
               if (!mask.any()) {
                 return;
               }
-              inv_board_t to = move_to_center<move, true>(info[i].ret);
+              inv_board_t to = move_to_center<move, true>(cache[i]);
               to &= mask;
               if (to.any()) {
-                info[i].ret |= to;
+                cache[i] |= to;
                 updated2 = true;
               }
             });
           }
-          cache[i] = info[i].ret;
           static_for<rotations>([&](auto j){
             constexpr int target = block.rotation_target(i, j);
             inv_board_t to;
             static_for<kicks>([&](auto k){
-              inv_board_t from = info[i].ret & info[i].kicks[j][k];
+              inv_board_t from = cache[i] & kicks2[i][j][k];
               to |= move_to_center<block.kicks[i][j][k], true, false>(from);
             });
             inv_board_t det = to & ~cache[target];
@@ -429,7 +422,7 @@ namespace reachability {
         });
       }
       for (int i = 0; i < orientations; ++i) {
-        cache[i] &= landable_positions(info[i].usable);
+        cache[i] &= landable_positions(usable[i]);
       }
       return cache;
     }
