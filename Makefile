@@ -1,5 +1,5 @@
 CC = g++
-CXXFLAGS = -std=c++20 -g -flto -O3 -Wall -Wextra -march=native
+CXXFLAGS = -std=c++20 -g -flto=auto -fwhole-program -O3 -Wall -Wextra -march=native #-ffunction-sections -Wl,--icf=all -fuse-ld=gold
 TARGETS := $(patsubst %.cpp, build/%, $(wildcard *.cpp))
 
 run: all

@@ -21,6 +21,172 @@ struct block {
   array<array<kick, 3>, 4> kicks;
 };
 
+template <char name>
+static constexpr block blocks = {};
+
+constexpr array<array<kick, 3>, 4> common = {{
+  {{ // 0
+    {{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}}},  // -> R
+    {{{0, 1}, {0, 1}, {0, 1}, {0, 1}, {0, 1}}},       // -> 2
+    {{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}}}      // -> L
+  }},
+  {{ // R
+    {{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}}},      // -> 2
+    {{{1, 0}, {1, 0}, {1, 0}, {1, 0}, {1, 0}}},       // -> L
+    {{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}}}       // -> 0
+  }},
+  {{ // 2
+    {{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}}},     // -> L
+    {{{0, -1}, {0, -1}, {0, -1}, {0, -1}, {0, -1}}},  // -> 0
+    {{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}}}   // -> R
+  }},
+  {{ // L
+    {{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}},   // -> 0
+    {{{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}},  // -> R
+    {{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}}    // -> 2
+  }}
+}};
+
+template <>
+constexpr block blocks<'T'> = {
+  {{
+    {{{-1, 0}, {0, 0}, {1, 0}, {0, 1}}},  // 0
+    {{{0, 1}, {0, 0}, {0, -1}, {1, 0}}},  // R
+    {{{1, 0}, {0, 0}, {-1, 0}, {0, -1}}}, // 2
+    {{{0, -1}, {0, 0}, {0, 1}, {-1, 0}}}  // L
+  }},
+  common
+};
+template <>
+constexpr block blocks<'Z'> = {
+  {{
+    {{{-1, 1}, {0, 1}, {0, 0}, {1, 0}}},   // 0
+    {{{1, 1}, {1, 0}, {0, 0}, {0, -1}}},   // R
+    {{{1, -1}, {0, -1}, {0, 0}, {-1, 0}}}, // 2
+    {{{-1, -1}, {-1, 0}, {0, 0}, {0, 1}}}  // L
+  }},
+  common
+};
+template <>
+constexpr block blocks<'S'> = {
+  {{
+    {{{1, 1}, {0, 1}, {0, 0}, {-1, 0}}},   // 0
+    {{{1, -1}, {1, 0}, {0, 0}, {0, 1}}},   // R
+    {{{-1, -1}, {0, -1}, {0, 0}, {1, 0}}}, // 2
+    {{{-1, 1}, {-1, 0}, {0, 0}, {0, -1}}}  // L
+  }},
+  common
+};
+template <>
+constexpr block blocks<'J'> = {
+  {{
+    {{{-1, 1}, {-1, 0}, {0, 0}, {1, 0}}}, // 0
+    {{{1, 1}, {0, 1}, {0, 0}, {0, -1}}},  // R
+    {{{1, -1}, {1, 0}, {0, 0}, {-1, 0}}}, // 2
+    {{{-1, -1}, {0, -1}, {0, 0}, {0, 1}}} // L
+  }},
+  common
+};
+template <>
+constexpr block blocks<'L'> = {
+  {{
+    {{{-1, 0}, {0, 0}, {1, 0}, {1, 1}}},  // 0
+    {{{0, 1}, {0, 0}, {0, -1}, {1, -1}}}, // R
+    {{{1, 0}, {0, 0}, {-1, 0}, {-1, -1}}},// 2
+    {{{0, -1}, {0, 0}, {0, 1}, {-1, 1}}}  // L
+  }},
+  common
+};
+template <>
+constexpr block blocks<'O'> = {
+  {{
+    {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // 0
+    {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // R
+    {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // 2
+    {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}  // L
+  }},
+  {{
+    {{
+      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
+      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
+      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
+    }},
+    {{
+      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
+      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
+      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
+    }},
+    {{
+      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
+      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
+      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
+    }},
+    {{
+      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
+      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
+      {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
+    }}
+  }}
+};
+template <>
+constexpr block blocks<'I'> = {
+  {{
+    {{{-1, 0}, {0, 0}, {1, 0}, {2, 0}}},   // 0
+    {{{0, 0}, {0, 1}, {0, -1}, {0, -2}}},  // R
+    {{{-1, 0}, {0, 0}, {1, 0}, {-2, 0}}},  // 2
+    {{{0, 1}, {0, 2}, {0, 0}, {0, -1}}},   // L
+  }},
+  {{
+    {{
+      {{{1, 0}, {-1, 0}, {2, 0}, {-1, -1}, {2, 2}}},
+      {{{1, 0}, {1, 0}, {1, 0}, {1, 0}, {1, 0}}},
+      {{{0, -1}, {-1, -1}, {2, -1}, {-1, 1}, {2, -2}}},
+    }},
+    {{
+      {{{0, -1}, {-1, -1}, {2, -1}, {-1, 1}, {2, -2}}},
+      {{{0, -1}, {0, -1}, {0, -1}, {0, -1}, {0, -1}}},
+      {{{-1, 0}, {1, 0}, {-2, 0}, {1, 1}, {-2, -2}}},
+    }},
+    {{
+      {{{-1, 0}, {1, 0}, {-2, 0}, {1, 1}, {-2, -2}}},
+      {{{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}},
+      {{{0, 1}, {1, 1}, {-2, 1}, {1, -1}, {-2, 2}}},
+    }},
+    {{
+      {{{0, 1}, {1, 1}, {-2, 1}, {1, -1}, {-2, 2}}},
+      {{{0, 1}, {0, 1}, {0, 1}, {0, 1}, {0, 1}}},
+      {{{1, 0}, {-1, 0}, {2, 0}, {-1, -1}, {2, 2}}},
+    }}
+  }}
+};
+
+static constexpr block get_block(char name) {
+  switch (name) {
+    case 'T': return blocks<'T'>;
+    case 'Z': return blocks<'Z'>;
+    case 'S': return blocks<'S'>;
+    case 'J': return blocks<'J'>;
+    case 'L': return blocks<'L'>;
+    case 'O': return blocks<'O'>;
+    case 'I': return blocks<'I'>;
+    default: assert(false);
+  }
+}
+
+template<typename F, std::size_t... S>
+constexpr void static_for(F&& function, std::index_sequence<S...>) {
+    int unpack[] = {0,
+        (void(function(std::integral_constant<std::size_t, S>{})), 0)...
+    };
+
+    (void) unpack;
+}
+
+template<std::size_t iterations, typename F>
+constexpr void static_for(F&& function) {
+    static_for(std::forward<F>(function), std::make_index_sequence<iterations>());
+}
+
 template <typename board_t, int W, int H>
 // should be constexpr
 // but constexpr-bitset requires C++23
@@ -269,8 +435,55 @@ struct board {
     }
     return board;
   }
+  template <coord d, bool reverse = false, bool check = true, class board_t>
+  static constexpr board_t move_to_center(board_t board) {
+    auto dx = d[0], dy = d[1];
+    if (reverse) {
+      dx = -dx;
+      dy = -dy;
+    }
+    board_t mask;
+    if (check && dx != 0) {
+      mask = ~board_t();
+      if (dx < 0) {
+        for (int i = 0; i < -dx; ++i) {
+          mask &= R<board_t, W, H> << i;
+        }
+      } else if (dx > 0) {
+        for (int i = 0; i < dx; ++i) {
+          mask &= L<board_t, W, H> >> i;
+        }
+      }
+    }
+    int move = dy * W + dx;
+    if (dy == 0) {
+      if (move < 0) {
+        board.left_shift(-move);
+      } else {
+        board.right_shift(move);
+      }
+    } else {
+      if (move < 0) {
+        board <<= -move;
+      } else {
+        board >>= move;
+      }
+    }
+    if (check && dx != 0) {
+      board &= mask;
+    }
+    return board;
+  }
   template <size_t N>
   constexpr inv_board_t usable_positions(const array<coord, N> &mino) const {
+    inv_board_t positions = ~inv_board_t();
+    for (const auto &coord : mino) {
+      positions &= move_to_center(inv_board_t{data}, coord);
+    }
+    return positions;
+  }
+  template <size_t N, array<coord, N> mino>
+  constexpr inv_board_t usable_positions() const {
     inv_board_t positions = ~inv_board_t();
     for (const auto &coord : mino) {
       positions &= move_to_center(inv_board_t{data}, coord);
@@ -362,6 +575,26 @@ struct board {
       }
       positions[i] &= start;
     }
+    inv_board_t temp = positions[0];
+    for (size_t i = 1; i < N; ++i) {
+      positions[i] &= ~temp;
+      temp |= positions[i];
+    }
+    return positions;
+  }
+  template <size_t N, array<coord, N> kick>
+  static constexpr array<inv_board_t, N> kick_positions(
+    const inv_board_t &start, const inv_board_t &end,
+    const array<inv_board_t, 5> &end_moved) {
+    array<inv_board_t, N> positions;
+    static_for<N>([&](auto i) {
+      if constexpr (kick[i][0] < -2 || kick[i][0] > 2) {
+        positions[i] = move_to_center<kick[i]>(end);
+      } else {
+        positions[i] = move_to_center<coord{0, kick[i][1]}>(end_moved[kick[i][0]+2]);
+      }
+      positions[i] &= start;
+    });
     inv_board_t temp = positions[0];
     for (size_t i = 1; i < N; ++i) {
       positions[i] &= ~temp;
@@ -480,6 +713,99 @@ struct board {
       ret[i] &= landable_positions(usable[i]);
     }
     return ret;
+  }
+  template <block block, coord start, bool use_optimize=false>
+  constexpr array<inv_board_t, 4> binary_bfs() const {
+    const array<inv_board_t, 4> usable = [&](){
+      array<inv_board_t, 4> usable;
+      static_for<4>([&](auto i) {
+        usable[i] = usable_positions<4, block.minos[i]>();
+      });
+      return usable;
+    }();
+    const array<array<inv_board_t, 5>, 4> usable_moved = [&](){
+      array<array<inv_board_t, 5>, 4> usable_moved;
+      static_for<4>([&](auto i) {
+        static_for<5>([&](auto j) {
+          usable_moved[i][j] = move_to_center<coord{int(j)-2, 0}>(usable[i]);
+        });
+      });
+      return usable_moved;
+    }();
+    const array<array<array<inv_board_t, 5>, 3>, 4> kicks = [&](){
+      array<array<array<inv_board_t, 5>, 3>, 4> kicks;
+      static_for<4>([&](auto i) {
+        static_for<3>([&](auto j) {
+          constexpr auto target = (i + j + 1) % 4;
+          kicks[i][j] = kick_positions<5, block.kicks[i][j]>(usable[i], usable[target], usable_moved[target]);
+        });
+      });
+      return kicks;
+    }();
+    constexpr const coord MOVES[] = {{-1, 0}, {1, 0}, {0, -1}};
+    array<inv_board_t, 4> ret;
+    if (!usable[0].get(start[0], start[1])) {
+      return ret;
+    }
+    ret[0].set(start[0], start[1]);
+    bool need_visit[4] = {true, false, false, false};
+    for (bool updated = true; updated;) {
+      updated = false;
+      static_for<4>([&](auto i){
+        if (!need_visit[i]) {
+          return;
+        }
+        do {
+          need_visit[i] = false;
+          static_for<3>([&](auto j){
+            constexpr auto move = MOVES[j];
+            inv_board_t mask = usable[i] & ~ret[i];
+            if (!mask.any()) {
+              return;
+            }
+            inv_board_t to = move_to_center<move, true>(ret[i]);
+            to &= mask;
+            if (to.any()) {
+              ret[i] |= to;
+              need_visit[i] = true;
+              updated = true;
+            }
+          });
+        } while (need_visit[i]);
+        static_for<3>([&](auto j){
+          constexpr int target = (i + j + 1) % 4;
+          inv_board_t to;
+          static_for<5>([&](auto k){
+            inv_board_t from = ret[i] & kicks[i][j][k];
+            to |= move_to_center<block.kicks[i][j][k], true, false>(from);
+          });
+          inv_board_t det = to & ~ret[target];
+          if (det.any()) {
+            ret[target] |= to;
+            need_visit[target] = true;
+            updated = true;
+          }
+        });
+      });
+    }
+    for (int i = 0; i < 4; ++i) {
+      ret[i] &= landable_positions(usable[i]);
+    }
+    return ret;
+  }
+  template <coord start, bool use_optimize=false>
+  [[gnu::noinline]]
+  constexpr array<inv_board_t, 4> binary_bfs(char block) const {
+    switch (block) {
+      case 'T': return binary_bfs<blocks<'T'>, start, use_optimize>();
+      case 'Z': return binary_bfs<blocks<'Z'>, start, use_optimize>();
+      case 'S': return binary_bfs<blocks<'S'>, start, use_optimize>();
+      case 'J': return binary_bfs<blocks<'J'>, start, use_optimize>();
+      case 'L': return binary_bfs<blocks<'L'>, start, use_optimize>();
+      case 'O': return binary_bfs<blocks<'O'>, start, use_optimize>();
+      case 'I': return binary_bfs<blocks<'I'>, start, use_optimize>();
+      default: assert(false);
+    }
   }
   array<inv_board_t, 4> ordinary_bfs(const block &block, const coord &start) const {
     const array<inv_board_t, 4> usable = [&](){
@@ -699,142 +1025,14 @@ int main() {
   vector<string> board_names = {
     "TSPIN", "DT", "BAD", "LZT", "4T"
   };
-  array<array<kick, 3>, 4> common = {{
-    {{ // 0
-      {{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}}},  // -> R
-      {{{0, 1}, {0, 1}, {0, 1}, {0, 1}, {0, 1}}},       // -> 2
-      {{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}}}      // -> L
-    }},
-    {{ // R
-      {{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}}},      // -> 2
-      {{{1, 0}, {1, 0}, {1, 0}, {1, 0}, {1, 0}}},       // -> L
-      {{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}}}       // -> 0
-    }},
-    {{ // 2
-      {{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}}},     // -> L
-      {{{0, -1}, {0, -1}, {0, -1}, {0, -1}, {0, -1}}},  // -> 0
-      {{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}}}   // -> R
-    }},
-    {{ // L
-      {{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}},   // -> 0
-      {{{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}},  // -> R
-      {{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}}    // -> 2
-    }}
-  }};
-  block T = {
-    {{
-      {{{-1, 0}, {0, 0}, {1, 0}, {0, 1}}},  // 0
-      {{{0, 1}, {0, 0}, {0, -1}, {1, 0}}},  // R
-      {{{1, 0}, {0, 0}, {-1, 0}, {0, -1}}}, // 2
-      {{{0, -1}, {0, 0}, {0, 1}, {-1, 0}}}  // L
-    }},
-    common
-  };
-  block Z = {
-    {{
-      {{{-1, 1}, {0, 1}, {0, 0}, {1, 0}}},   // 0
-      {{{1, 1}, {1, 0}, {0, 0}, {0, -1}}},   // R
-      {{{1, -1}, {0, -1}, {0, 0}, {-1, 0}}}, // 2
-      {{{-1, -1}, {-1, 0}, {0, 0}, {0, 1}}}  // L
-    }},
-    common
-  };
-  block S = {
-    {{
-      {{{1, 1}, {0, 1}, {0, 0}, {-1, 0}}},   // 0
-      {{{1, -1}, {1, 0}, {0, 0}, {0, 1}}},   // R
-      {{{-1, -1}, {0, -1}, {0, 0}, {1, 0}}}, // 2
-      {{{-1, 1}, {-1, 0}, {0, 0}, {0, -1}}}  // L
-    }},
-    common
-  };
-  block J = {
-    {{
-      {{{-1, 1}, {-1, 0}, {0, 0}, {1, 0}}}, // 0
-      {{{1, 1}, {0, 1}, {0, 0}, {0, -1}}},  // R
-      {{{1, -1}, {1, 0}, {0, 0}, {-1, 0}}}, // 2
-      {{{-1, -1}, {0, -1}, {0, 0}, {0, 1}}} // L
-    }},
-    common
-  };
-  block L = {
-    {{
-      {{{-1, 0}, {0, 0}, {1, 0}, {1, 1}}},  // 0
-      {{{0, 1}, {0, 0}, {0, -1}, {1, -1}}}, // R
-      {{{1, 0}, {0, 0}, {-1, 0}, {-1, -1}}},// 2
-      {{{0, -1}, {0, 0}, {0, 1}, {-1, 1}}}  // L
-    }},
-    common
-  };
-  block O = {
-    {{
-      {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // 0
-      {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // R
-      {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // 2
-      {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}  // L
-    }},
-    {{
-      {{
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-      }},
-      {{
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-      }},
-      {{
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-      }},
-      {{
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-      }}
-    }}
-  };
-  block I = {
-    {{
-      {{{-1, 0}, {0, 0}, {1, 0}, {2, 0}}},   // 0
-      {{{0, 0}, {0, 1}, {0, -1}, {0, -2}}},  // R
-      {{{-1, 0}, {0, 0}, {1, 0}, {-2, 0}}},  // 2
-      {{{0, 1}, {0, 2}, {0, 0}, {0, -1}}},   // L
-    }},
-    {{
-      {{
-        {{{1, 0}, {-1, 0}, {2, 0}, {-1, -1}, {2, 2}}},
-        {{{1, 0}, {1, 0}, {1, 0}, {1, 0}, {1, 0}}},
-        {{{0, -1}, {-1, -1}, {2, -1}, {-1, 1}, {2, -2}}},
-      }},
-      {{
-        {{{0, -1}, {-1, -1}, {2, -1}, {-1, 1}, {2, -2}}},
-        {{{0, -1}, {0, -1}, {0, -1}, {0, -1}, {0, -1}}},
-        {{{-1, 0}, {1, 0}, {-2, 0}, {1, 1}, {-2, -2}}},
-      }},
-      {{
-        {{{-1, 0}, {1, 0}, {-2, 0}, {1, 1}, {-2, -2}}},
-        {{{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}},
-        {{{0, 1}, {1, 1}, {-2, 1}, {1, -1}, {-2, 2}}},
-      }},
-      {{
-        {{{0, 1}, {1, 1}, {-2, 1}, {1, -1}, {-2, 2}}},
-        {{{0, 1}, {0, 1}, {0, 1}, {0, 1}, {0, 1}}},
-        {{{1, 0}, {-1, 0}, {2, 0}, {-1, -1}, {2, 2}}},
-      }}
-    }}
-  };
-  block blocks[] = {I, J, L, O, S, T, Z};
   string name = "IJLOSTZ";
   for (size_t i = 0; i < board_names.size(); ++i) {
     cout << "BOARD " << board_names[i] << endl;
     const auto &b = boards[i];
     for (int j = 0; j < 7; ++j) {
       cout << " BLOCK " << name[j] << endl;
-      const auto &B = blocks[j];
-      auto binary = b.binary_bfs(B, {4, 20});
+      const auto &B = get_block(name[j]);
+      auto binary = b.binary_bfs<coord{4, 20}>(name[j]);
       auto ordinary = b.ordinary_bfs(B, {4, 20});
       auto ordinary_without_binary = b.ordinary_bfs_without_binary(B, {4, 20});
       for (int i = 0; i < 4; ++i) {
@@ -848,6 +1046,7 @@ int main() {
         }
       }
       cout << "  binary  : " << bench([&](){b.binary_bfs(B, {4, 20});}) << "ns" << endl;
+      cout << "  binary 2: " << bench([&](){b.binary_bfs<coord{4, 20}>(name[j]);}) << "ns" << endl;
       cout << "  ordinary: " << bench([&](){b.ordinary_bfs(B, {4, 20});}) << "ns" << endl;
       cout << "  true ord: " << bench([&](){b.ordinary_bfs_without_binary(B, {4, 20});}) << "ns" << endl;
     }
