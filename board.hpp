@@ -449,33 +449,29 @@ namespace reachability {
       constexpr const coord MOVES[] = {{0, -1}, {-1, 0}, {1, 0}};
       bool visited[orientations][H][W] = {};
       bool ret[orientations][H][W] = {};
-      if (!usable(0, start[0], start[1])) {
-        return std::array<inv_board_t, orientations>{};
-      }
-      visited[0][start[1]][start[0]] = true;
       std::queue<std::tuple<int, int, int>> q;
-      q.emplace(start[0], start[1], 0);
+      auto visit = [&] [[gnu::always_inline]] (int i, int x, int y) {
+        if (!in_range(x, y) || !usable(i, x, y))
+          return false;
+        if (!visited[i][y][x]) {
+          visited[i][y][x] = true;
+          q.emplace(x, y, i);
+          if (!usable(i, x, y - 1))
+            ret[i][y][x] = true;
+        }
+        return true;
+      };
+      visit(0, start[0], start[1]);
       while (!q.empty()) {
         const auto [x, y, i] = q.front();
         q.pop();
         for (auto &[dx, dy] : MOVES) {
-          if (in_range(x + dx, y + dy) && !visited[i][y + dy][x + dx] && usable(i, x + dx, y + dy)) {
-            visited[i][y + dy][x + dx] = true;
-            q.emplace(x + dx, y + dy, i);
-            if (!usable(i, x + dx, y + dy - 1))
-              ret[i][y + dy][x + dx] = true;
-          }
+            visit(i, x + dx, y + dy);
         }
         for (int j = 0; j < block.ROTATIONS; ++j) {
           const auto target = block.rotation_target(i, j);
           for (auto &[dx, dy] : block.kicks[i][j]) {
-            if (in_range(x + dx, y + dy) && usable(target, x + dx, y + dy)) {
-              if (!visited[target][y + dy][x + dx]) {
-                visited[target][y + dy][x + dx] = true;
-                q.emplace(x + dx, y + dy, target);
-                if (!usable(target, x + dx, y + dy - 1))
-                  ret[target][y + dy][x + dx] = true;
-              }
+            if (visit(target, x + dx, y + dy)) {
               break;
             }
           }
