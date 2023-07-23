@@ -1,6 +1,7 @@
 #pragma once
 #include "block.hpp"
 #include "board.hpp"
+#include "utils.hpp"
 #include <tuple>
 #include <queue>
 #include <array>
