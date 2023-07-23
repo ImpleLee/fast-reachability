@@ -1,5 +1,6 @@
 #include "block.hpp"
 #include "board.hpp"
+#include "search.hpp"
 #include <string>
 #include <deque>
 #include <iostream>
@@ -9,7 +10,7 @@ using namespace std;
 
 bool _ = ios::sync_with_stdio(false);
 constexpr int WIDTH = 10, HEIGHT = 24;
-using BOARD = reachability::board<WIDTH, HEIGHT>;
+using BOARD = reachability::board_t<WIDTH, HEIGHT>;
 BOARD str_to_board(deque<string> &&b_str) {
   while (b_str.size() < HEIGHT) {
     b_str.emplace_front(WIDTH, ' ');
@@ -29,24 +30,24 @@ auto bench(auto f, int count=50000) {
   auto end = chrono::system_clock::now();
   return double(chrono::duration_cast<chrono::nanoseconds>(end - start).count()) / count;
 }
-template <reachability::blocks::block block, bool print=false, reachability::coord start=reachability::coord{4, 20}, unsigned init_rot=0>
+template <reachability::block block, bool print=false, reachability::coord start=reachability::coord{4, 20}, unsigned init_rot=0>
 array<double, 2> test(const BOARD &b, const string &name) {
   cout << "BOARD " << name << endl;
   int length = block.ORIENTATIONS;
-  auto binary = b.binary_bfs<block, start, init_rot>();
-  auto ordinary = b.ordinary_bfs_without_binary(block, start, init_rot);
+  auto binary = reachability::binary_bfs<block, start, init_rot>(b);
+  auto ordinary = reachability::ordinary_bfs_without_binary(b, block, start, init_rot);
   for (int i = 0; i < length; ++i) {
     if (binary[i] != ordinary[i]) {
       cout << "  binary[" << i << "] != ordinary[" << i << "]" << endl;
-      cout << to_string(binary[i], ordinary[i], b.data);
+      cout << to_string(binary[i], ordinary[i], b);
     } else if (print) {
       cout << "  result[" << i << "]" << endl;
-      cout << to_string(binary[i], b.data);
+      cout << to_string(binary[i], b);
     }
   }
-  auto binary_time = bench([&](){binary = b.binary_bfs<block, start, init_rot>();}, 1000000);
+  auto binary_time = bench([&](){binary = reachability::binary_bfs<block, start, init_rot>(b);}, 1000000);
   cout << "  binary  : " << binary_time << "ns" << endl;
-  auto ordinary_time = bench([&](){ordinary = b.ordinary_bfs_without_binary(block, start, init_rot);});
+  auto ordinary_time = bench([&](){ordinary = reachability::ordinary_bfs_without_binary(b, block, start, init_rot);});
   cout << "  true ord: " << ordinary_time << "ns" << endl;
   return {binary_time, ordinary_time};
 }
@@ -54,22 +55,22 @@ template <bool print=false, reachability::coord start=reachability::coord{4, 20}
 array<double, 2> test(const BOARD &b, const string &name, char block) {
   cout << "BOARD " << name << endl;
   cout << " BLOCK " << block << endl;
-  BOARD::inv_board_t binary[4], ordinary[4];
+  reachability::inv_board_t<WIDTH, HEIGHT> binary[4], ordinary[4];
   int length = reachability::blocks::get_orientations(block);
-  b.binary_bfs<start, init_rot>(binary, block);
-  b.ordinary_bfs_without_binary(ordinary, block, start, init_rot);
+  reachability::binary_bfs<start, init_rot>(binary, b, block);
+  reachability::ordinary_bfs_without_binary(ordinary, b, block, start, init_rot);
   for (int i = 0; i < length; ++i) {
     if (binary[i] != ordinary[i]) {
       cout << "  binary[" << i << "] != ordinary[" << i << "]" << endl;
-      cout << to_string(binary[i], ordinary[i], b.data);
+      cout << to_string(binary[i], ordinary[i], b);
     } else if (print) {
       cout << "  result[" << i << "]" << endl;
-      cout << to_string(binary[i], b.data);
+      cout << to_string(binary[i], b);
     }
   }
-  auto binary_time = bench([&](){b.binary_bfs<start, init_rot>(binary, block);}, 1000000);
+  auto binary_time = bench([&](){reachability::binary_bfs<start, init_rot>(binary, b, block);}, 1000000);
   cout << "  binary  : " << binary_time << "ns" << endl;
-  auto ordinary_time = bench([&](){b.ordinary_bfs_without_binary(ordinary, block, start, init_rot);});
+  auto ordinary_time = bench([&](){reachability::ordinary_bfs_without_binary(ordinary, b, block, start, init_rot);});
   cout << "  true ord: " << ordinary_time << "ns" << endl;
   return {binary_time, ordinary_time};
 }
@@ -136,7 +137,7 @@ int main() {
   }
   cout << "TOTAL binary  : " << binary_sum << "ns" << endl;
   cout << "TOTAL true ord: " << ordinary_sum << "ns" << endl;
-  test<reachability::blocks::Z, true>(str_to_board({
+  test<reachability::Z, true>(str_to_board({
     "XXXX  XXX ",
     "XXXXX XXXX",
     "      X  X",
@@ -157,7 +158,7 @@ int main() {
     "X  XX X XX",
     "XX  XXXXXX",
   }), "LZT");
-  test<reachability::blocks::L, true, reachability::coord{1, 1}, 2>(str_to_board({
+  test<reachability::L, true, reachability::coord{1, 1}, 2>(str_to_board({
     "     X    ",
     "XXX X     ",
     "         X",
@@ -181,7 +182,7 @@ int main() {
     "       X  ",
     " XXX XX X ",
   }), "FARTER 1");
-  test<reachability::blocks::I, true, reachability::coord{7, 0}, 0>(str_to_board({
+  test<reachability::I, true, reachability::coord{7, 0}, 0>(str_to_board({
     "       X  ",
     "       X  ",
     "   X   XX ",

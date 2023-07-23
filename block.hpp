@@ -152,3 +152,7 @@ namespace reachability::blocks {
     return ret;
   }
 }
+namespace reachability {
+  using blocks::block, blocks::call_with_block;
+  using blocks::T, blocks::Z, blocks::S, blocks::J, blocks::L, blocks::O, blocks::I;
+}
