@@ -10,6 +10,7 @@
 namespace reachability::search {
   using namespace utils;
   using namespace blocks;
+  using namespace blocks::SRS;
   using namespace board;
   template <typename my_board_t, int dx>
   static constexpr my_board_t MASK = []() consteval {
@@ -234,7 +235,4 @@ namespace reachability::search {
       }
     });
   }
-}
-namespace reachability {
-  using search::binary_bfs, search::ordinary_bfs_without_binary;
 }

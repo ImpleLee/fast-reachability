@@ -7,8 +7,8 @@ namespace reachability {
 namespace reachability::blocks {
   template <int orientations, int rotations, int block_per_mino, int kick_per_rotation>
   struct block {
-    using mino = std::array<coord, 4>;
-    using kick = std::array<coord, 5>;
+    using mino = std::array<coord, block_per_mino>;
+    using kick = std::array<coord, kick_per_rotation>;
     static constexpr int ORIENTATIONS = orientations;
     static constexpr int ROTATIONS = rotations;
     static constexpr int BLOCK_PER_MINO = block_per_mino;
@@ -26,133 +26,135 @@ namespace reachability::blocks {
     }
   };
 
-  inline constexpr std::array<std::array<std::array<coord, 5>, 2>, 4> common = {{
-    {{ // 0
-      {{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}}},  // -> R
-      // {{{0, 1}, {0, 1}, {0, 1}, {0, 1}, {0, 1}}},       // -> 2
-      {{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}}}      // -> L
-    }},
-    {{ // R
-      {{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}}},      // -> 2
-      // {{{1, 0}, {1, 0}, {1, 0}, {1, 0}, {1, 0}}},       // -> L
-      {{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}}}       // -> 0
-    }},
-    {{ // 2
-      {{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}}},     // -> L
-      // {{{0, -1}, {0, -1}, {0, -1}, {0, -1}, {0, -1}}},  // -> 0
-      {{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}}}   // -> R
-    }},
-    {{ // L
-      {{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}},   // -> 0
-      // {{{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}},  // -> R
-      {{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}}    // -> 2
-    }}
-  }};
-
-  inline constexpr block<4, 2, 4, 5> T = {
-    {{
-      {{{-1, 0}, {0, 0}, {1, 0}, {0, 1}}},  // 0
-      {{{0, 1}, {0, 0}, {0, -1}, {1, 0}}},  // R
-      {{{1, 0}, {0, 0}, {-1, 0}, {0, -1}}}, // 2
-      {{{0, -1}, {0, 0}, {0, 1}, {-1, 0}}}  // L
-    }},
-    common
-  };
-  inline constexpr block<4, 2, 4, 5> Z  = {
-    {{
-      {{{-1, 1}, {0, 1}, {0, 0}, {1, 0}}},   // 0
-      {{{1, 1}, {1, 0}, {0, 0}, {0, -1}}},   // R
-      {{{1, -1}, {0, -1}, {0, 0}, {-1, 0}}}, // 2
-      {{{-1, -1}, {-1, 0}, {0, 0}, {0, 1}}}  // L
-    }},
-    common
-  };
-  inline constexpr block<4, 2, 4, 5> S = {
-    {{
-      {{{1, 1}, {0, 1}, {0, 0}, {-1, 0}}},   // 0
-      {{{1, -1}, {1, 0}, {0, 0}, {0, 1}}},   // R
-      {{{-1, -1}, {0, -1}, {0, 0}, {1, 0}}}, // 2
-      {{{-1, 1}, {-1, 0}, {0, 0}, {0, -1}}}  // L
-    }},
-    common
-  };
-  inline constexpr block<4, 2, 4, 5> J = {
-    {{
-      {{{-1, 1}, {-1, 0}, {0, 0}, {1, 0}}}, // 0
-      {{{1, 1}, {0, 1}, {0, 0}, {0, -1}}},  // R
-      {{{1, -1}, {1, 0}, {0, 0}, {-1, 0}}}, // 2
-      {{{-1, -1}, {0, -1}, {0, 0}, {0, 1}}} // L
-    }},
-    common
-  };
-  inline constexpr block<4, 2, 4, 5> L = {
-    {{
-      {{{-1, 0}, {0, 0}, {1, 0}, {1, 1}}},  // 0
-      {{{0, 1}, {0, 0}, {0, -1}, {1, -1}}}, // R
-      {{{1, 0}, {0, 0}, {-1, 0}, {-1, -1}}},// 2
-      {{{0, -1}, {0, 0}, {0, 1}, {-1, 1}}}  // L
-    }},
-    common
-  };
-  inline constexpr block<1, 0, 4, 0> O = {
-    {{
-      {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // 0
-    }},
-    {}
-  };
-  inline constexpr block<4, 2, 4, 5> I = {
-    {{
-      {{{-1, 0}, {0, 0}, {1, 0}, {2, 0}}},   // 0
-      {{{0, 0}, {0, 1}, {0, -1}, {0, -2}}},  // R
-      {{{-1, 0}, {0, 0}, {1, 0}, {-2, 0}}},  // 2
-      {{{0, 1}, {0, 2}, {0, 0}, {0, -1}}},   // L
-    }},
-    {{
-      {{
-        {{{1, 0}, {-1, 0}, {2, 0}, {-1, -1}, {2, 2}}},
-        // {{{1, 0}, {1, 0}, {1, 0}, {1, 0}, {1, 0}}},
-        {{{0, -1}, {-1, -1}, {2, -1}, {-1, 1}, {2, -2}}},
-      }},
-      {{
-        {{{0, -1}, {-1, -1}, {2, -1}, {-1, 1}, {2, -2}}},
-        // {{{0, -1}, {0, -1}, {0, -1}, {0, -1}, {0, -1}}},
-        {{{-1, 0}, {1, 0}, {-2, 0}, {1, 1}, {-2, -2}}},
-      }},
-      {{
-        {{{-1, 0}, {1, 0}, {-2, 0}, {1, 1}, {-2, -2}}},
-        // {{{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}},
-        {{{0, 1}, {1, 1}, {-2, 1}, {1, -1}, {-2, 2}}},
-      }},
-      {{
-        {{{0, 1}, {1, 1}, {-2, 1}, {1, -1}, {-2, 2}}},
-        // {{{0, 1}, {0, 1}, {0, 1}, {0, 1}, {0, 1}}},
-        {{{1, 0}, {-1, 0}, {2, 0}, {-1, -1}, {2, 2}}},
-      }}
-    }}
+  template <int block_per_mino, int orientations>
+  struct pure_block {
+    using mino = std::array<coord, block_per_mino>;
+    [[no_unique_address]]
+    std::array<mino, orientations> minos;
   };
 
-  template <typename F>
-  constexpr void call_with_block(char ch, F f) {
-    switch (ch) {
-      case 'T': f.template operator()<T>(); return;
-      case 'Z': f.template operator()<Z>(); return;
-      case 'S': f.template operator()<S>(); return;
-      case 'J': f.template operator()<J>(); return;
-      case 'L': f.template operator()<L>(); return;
-      case 'O': f.template operator()<O>(); return;
-      case 'I': f.template operator()<I>(); return;
-    }
+  template <int orientations, int rotations, int kick_per_rotation>
+  struct pure_kick {
+    using kick = std::array<coord, kick_per_rotation>;
+    [[no_unique_address]]
+    std::array<std::array<kick, rotations>, orientations> kicks;
+  };
+
+  template <int orientations, int rotations, int block_per_mino, int kick_per_rotation>
+  constexpr block<orientations, rotations, block_per_mino, kick_per_rotation> operator+(
+    const pure_block<block_per_mino, orientations> &b,
+    const pure_kick<orientations, rotations, kick_per_rotation> &k
+  ) {
+    return {b.minos, k.kicks};
   }
 
-  constexpr int get_orientations(char ch) {
-    int ret = 0;
-    call_with_block(ch, [&]<block b>() {
-      ret = b.ORIENTATIONS;
-    });
-    return ret;
+  inline constexpr pure_kick<0, 0, 0> no_kick;
+  template <int orientations, int block_per_mino>
+  constexpr block<orientations, 0, block_per_mino, 0> operator+(
+    const pure_block<block_per_mino, orientations> &b,
+    const pure_kick<0, 0, 0> &
+  ) {
+    return {b.minos, {}};
+  }
+
+  inline constexpr pure_block<4, 4> T = {{{
+    {{{-1, 0}, {0, 0}, {1, 0}, {0, 1}}},  // 0
+    {{{0, 1}, {0, 0}, {0, -1}, {1, 0}}},  // R
+    {{{1, 0}, {0, 0}, {-1, 0}, {0, -1}}}, // 2
+    {{{0, -1}, {0, 0}, {0, 1}, {-1, 0}}}  // L
+  }}};
+  inline constexpr pure_block<4, 4> Z  = {{{
+    {{{-1, 1}, {0, 1}, {0, 0}, {1, 0}}},   // 0
+    {{{1, 1}, {1, 0}, {0, 0}, {0, -1}}},   // R
+    {{{1, -1}, {0, -1}, {0, 0}, {-1, 0}}}, // 2
+    {{{-1, -1}, {-1, 0}, {0, 0}, {0, 1}}}  // L
+  }}};
+  inline constexpr pure_block<4, 4> S = {{{
+    {{{1, 1}, {0, 1}, {0, 0}, {-1, 0}}},   // 0
+    {{{1, -1}, {1, 0}, {0, 0}, {0, 1}}},   // R
+    {{{-1, -1}, {0, -1}, {0, 0}, {1, 0}}}, // 2
+    {{{-1, 1}, {-1, 0}, {0, 0}, {0, -1}}}  // L
+  }}};
+  inline constexpr pure_block<4, 4> J = {{{
+    {{{-1, 1}, {-1, 0}, {0, 0}, {1, 0}}}, // 0
+    {{{1, 1}, {0, 1}, {0, 0}, {0, -1}}},  // R
+    {{{1, -1}, {1, 0}, {0, 0}, {-1, 0}}}, // 2
+    {{{-1, -1}, {0, -1}, {0, 0}, {0, 1}}} // L
+  }}};
+  inline constexpr pure_block<4, 4> L = {{{
+    {{{-1, 0}, {0, 0}, {1, 0}, {1, 1}}},  // 0
+    {{{0, 1}, {0, 0}, {0, -1}, {1, -1}}}, // R
+    {{{1, 0}, {0, 0}, {-1, 0}, {-1, -1}}},// 2
+    {{{0, -1}, {0, 0}, {0, 1}, {-1, 1}}}  // L
+  }}};
+  inline constexpr pure_block<4, 1> O = {{{
+    {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}},
+  }}};
+  inline constexpr pure_block<4, 4> I = {{{
+    {{{-1, 0}, {0, 0}, {1, 0}, {2, 0}}},    // 0
+    {{{1, 0}, {1, 1}, {1, -1}, {1, -2}}},   // R
+    {{{-1, -1}, {0, -1}, {1, -1}, {2, -1}}},// 2
+    {{{0, 0}, {0, 1}, {0, -1}, {0, -2}}},   // L
+  }}};
+
+  namespace SRS {
+    inline constexpr pure_kick<4, 2, 5> SRS_common_kick = {{{
+      {{ // 0
+        {{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}}},  // -> R
+        {{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}}}      // -> L
+      }},
+      {{ // R
+        {{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}}},      // -> 2
+        {{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}}}       // -> 0
+      }},
+      {{ // 2
+        {{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}}},     // -> L
+        {{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}}}   // -> R
+      }},
+      {{ // L
+        {{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}},   // -> 0
+        {{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}}    // -> 2
+      }}
+    }}};
+    inline constexpr pure_kick<4, 2, 5> SRS_I_kick = {{{
+      {{ // 0
+        {{{0, 0}, {-2, 0}, {1, 0}, {-2, -1}, {1, 2}}},    // -> R
+        {{{0, 0}, {-1, 0}, {2, 0}, {-1, 2}, {2, -1}}},    // -> L
+      }},
+      {{ // R
+        {{{0, 0}, {-1, 0}, {2, 0}, {-1, 2}, {2, -1}}},    // -> 2
+        {{{0, 0}, {2, 0}, {-1, 0}, {2, 1}, {-1, -2}}},    // -> 0
+      }},
+      {{ // 2
+        {{{0, 0}, {2, 0}, {-1, 0}, {2, 1}, {-1, -2}}},    // -> L
+        {{{0, 0}, {1, 0}, {-2, 0}, {1, -2}, {-2, 1}}},    // -> R
+      }},
+      {{ // L
+        {{{0, 0}, {1, 0}, {-2, 0}, {1, -2}, {-2, 1}}},    // -> 0
+        {{{0, 0}, {-2, 0}, {1, 0}, {-2, -1}, {1, 2}}},    // -> 2
+      }}
+    }}};
+    template <typename F>
+    constexpr void call_with_block(char ch, F f) {
+      switch (ch) {
+        case 'T': f.template operator()<T+SRS_common_kick>(); return;
+        case 'Z': f.template operator()<Z+SRS_common_kick>(); return;
+        case 'S': f.template operator()<S+SRS_common_kick>(); return;
+        case 'J': f.template operator()<J+SRS_common_kick>(); return;
+        case 'L': f.template operator()<L+SRS_common_kick>(); return;
+        case 'O': f.template operator()<O+no_kick>(); return;
+        case 'I': f.template operator()<I+SRS_I_kick>(); return;
+      }
+    }
+    constexpr int get_orientations(char ch) {
+      int ret = 0;
+      call_with_block(ch, [&]<block b>() {
+        ret = b.ORIENTATIONS;
+      });
+      return ret;
+    }
   }
 }
 namespace reachability {
-  using blocks::block, blocks::call_with_block;
-  using blocks::T, blocks::Z, blocks::S, blocks::J, blocks::L, blocks::O, blocks::I;
+  using blocks::block, blocks::SRS::call_with_block, blocks::SRS::get_orientations;
 }
