@@ -98,7 +98,10 @@ namespace reachability::blocks {
   }}};
 
   template <typename RS>
-  inline constexpr auto call_with_block = nullptr;
+  inline constexpr auto call_with_block = [](){
+    constexpr struct {} _;
+    static_assert(std::is_same_v<RS, decltype(_)>, "unregistered rotation system");
+  };
 
   template <typename RS>
   constexpr int get_orientations(char ch) {
