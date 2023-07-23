@@ -350,7 +350,7 @@ namespace reachability {
       });
       return positions;
     }
-    template <blocks::block block, coord start, bool use_optimize=false>
+    template <blocks::block block, coord start, unsigned init_rot, bool use_optimize=false>
     constexpr std::array<inv_board_t, block.ORIENTATIONS> binary_bfs() const {
       constexpr int orientations = block.ORIENTATIONS;
       constexpr int rotations = block.ROTATIONS;
@@ -367,12 +367,13 @@ namespace reachability {
         });
       });
       constexpr std::array<coord, 3> MOVES = {{{-1, 0}, {1, 0}, {0, -1}}};
-      if (!usable[0].template get<start[0], start[1]>()) {
+      if (!usable[init_rot].template get<start[0], start[1]>()) {
         return {};
       }
-      bool need_visit[orientations] = { true };
+      bool need_visit[orientations] = { };
+      need_visit[init_rot] = true;
       std::array<inv_board_t, orientations> cache;
-      cache[0].template set<start[0], start[1]>();
+      cache[init_rot].template set<start[0], start[1]>();
       for (bool updated = true; updated;) {
         updated = false;
         static_for<orientations>([&](auto i){
@@ -418,17 +419,17 @@ namespace reachability {
       });
       return cache;
     }
-    template <coord start, bool use_optimize=false>
+    template <coord start, unsigned init_rot=0, bool use_optimize=false>
     [[gnu::noinline]]
     constexpr void binary_bfs(inv_board_t *ret, char block) const {
       blocks::call_with_block(block, [&]<blocks::block B>() {
-        auto info = binary_bfs<B, start, use_optimize>();
+        auto info = binary_bfs<B, start, init_rot, use_optimize>();
         for (std::size_t i = 0; i < info.size(); ++i) {
           ret[i] = info[i];
         }
       });
     }
-    auto ordinary_bfs_without_binary(const auto &block, const coord &start) const {
+    auto ordinary_bfs_without_binary(const auto &block, const coord &start, unsigned init_rot) const {
       constexpr auto orientations = std::remove_cvref_t<decltype(block)>::ORIENTATIONS;
       bool my_data[H][W];
       static_for<H>([&](auto y) {
@@ -461,7 +462,7 @@ namespace reachability {
         }
         return true;
       };
-      visit(0, start[0], start[1]);
+      visit(init_rot, start[0], start[1]);
       while (!q.empty()) {
         const auto [x, y, i] = q.front();
         q.pop();
@@ -490,9 +491,9 @@ namespace reachability {
       return true_ret;
     }
     [[gnu::noinline]]
-    constexpr void ordinary_bfs_without_binary(inv_board_t *ret, char block, const coord &start) const {
+    constexpr void ordinary_bfs_without_binary(inv_board_t *ret, char block, const coord &start, unsigned init_rot=0) const {
       blocks::call_with_block(block, [&]<blocks::block B>() {
-        auto info = ordinary_bfs_without_binary(B, start);
+        auto info = ordinary_bfs_without_binary(B, start, init_rot);
         for (std::size_t i = 0; i < info.size(); ++i) {
           ret[i] = info[i];
         }
