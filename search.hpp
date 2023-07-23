@@ -10,7 +10,6 @@
 namespace reachability::search {
   using namespace utils;
   using namespace blocks;
-  using namespace blocks::SRS;
   using namespace board;
   template <typename my_board_t, int dx>
   static constexpr my_board_t MASK = []() consteval {
@@ -153,7 +152,7 @@ namespace reachability::search {
     });
     return cache;
   }
-  template <coord start, unsigned init_rot=0, unsigned W, unsigned H>
+  template <auto call_with_block, coord start, unsigned init_rot=0, unsigned W, unsigned H>
   [[gnu::noinline]]
   constexpr void binary_bfs(inv_board_t<W, H> *ret, const board_t<W, H> &data, char block) {
     call_with_block(block, [&]<blocks::block B>() {
@@ -225,7 +224,7 @@ namespace reachability::search {
     });
     return true_ret;
   }
-  template <unsigned W, unsigned H>
+  template <auto call_with_block, unsigned W, unsigned H>
   [[gnu::noinline]]
   constexpr void ordinary_bfs_without_binary(inv_board_t<W, H> *ret, const board_t<W, H> &data, char block, const coord &start, unsigned init_rot=0) {
     call_with_block(block, [&]<blocks::block B>() {

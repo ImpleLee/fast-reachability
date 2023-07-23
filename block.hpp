@@ -134,8 +134,8 @@ namespace reachability::blocks {
         {{{0, 0}, {-2, 0}, {1, 0}, {-2, -1}, {1, 2}}},    // -> 2
       }}
     }}};
-    template <typename F>
-    constexpr void call_with_block(char ch, F f) {
+    inline constexpr auto call_with_block =
+        []<typename F>(char ch, F f) {
       switch (ch) {
         case 'T': f.template operator()<T+SRS_common_kick>(); return;
         case 'Z': f.template operator()<Z+SRS_common_kick>(); return;
@@ -145,7 +145,7 @@ namespace reachability::blocks {
         case 'O': f.template operator()<O+no_kick>(); return;
         case 'I': f.template operator()<I+SRS_I_kick>(); return;
       }
-    }
+    };
     constexpr int get_orientations(char ch) {
       int ret = 0;
       call_with_block(ch, [&]<block b>() {
@@ -156,5 +156,5 @@ namespace reachability::blocks {
   }
 }
 namespace reachability {
-  using blocks::block, blocks::SRS::call_with_block, blocks::SRS::get_orientations;
+  using blocks::block;
 }
