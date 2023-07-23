@@ -156,11 +156,8 @@ namespace reachability {
         } \
         constexpr name & operator<<=(std::size_t i) { \
           static_for<last>([&](auto j) { \
-            data[j] &= mask; \
-          }); \
-          static_for<last>([&](auto j) { \
             data[last - j] <<= i; \
-            data[last - j] |= data[last - j - 1] >> (used_per_under - i); \
+            data[last - j] |= (data[last - j - 1] & mask) >> (used_per_under - i); \
           }); \
           data[0] <<= i; \
           return *this; \
@@ -168,11 +165,8 @@ namespace reachability {
         template <std::size_t i> \
         constexpr name & left_shift_carry() { \
           static_for<last>([&](auto j) { \
-            data[j] &= mask; \
-          }); \
-          static_for<last>([&](auto j) { \
             data[last - j] <<= i; \
-            data[last - j] |= data[last - j - 1] >> (used_per_under - i); \
+            data[last - j] |= (data[last - j - 1] & mask) >> (used_per_under - i); \
           }); \
           data[0] <<= i; \
           return *this; \
