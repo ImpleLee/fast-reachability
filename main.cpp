@@ -139,8 +139,7 @@ int main() {
   cout << "TOTAL binary  : " << binary_sum << "ns" << endl;
   cout << "TOTAL true ord: " << ordinary_sum << "ns" << endl;
   using namespace reachability::blocks;
-  using namespace SRS;
-  test<Z+SRS_common_kick, true>(str_to_board({
+  test<SRS::Z, true>(str_to_board({
     "XXXX  XXX ",
     "XXXXX XXXX",
     "      X  X",
@@ -161,7 +160,7 @@ int main() {
     "X  XX X XX",
     "XX  XXXXXX",
   }), "LZT");
-  test<L+SRS_common_kick, true, reachability::coord{1, 1}, 2>(str_to_board({
+  test<SRS::L, true, reachability::coord{1, 1}, 2>(str_to_board({
     "     X    ",
     "XXX X     ",
     "         X",
@@ -185,7 +184,7 @@ int main() {
     "       X  ",
     " XXX XX X ",
   }), "FARTER 1");
-  test<I+SRS_I_kick, true, reachability::coord{7, 0}, 0>(str_to_board({
+  test<SRS::I, true, reachability::coord{7, 0}, 0>(str_to_board({
     "       X  ",
     "       X  ",
     "   X   XX ",
