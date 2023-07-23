@@ -101,21 +101,21 @@ namespace reachability::search {
       });
     });
     constexpr std::array<coord, 3> MOVES = {{{-1, 0}, {1, 0}, {0, -1}}};
-    if (!usable[init_rot].template get<start[0], start[1]>()) {
+    if (!usable[init_rot].template get<start[0], start[1]>()) [[unlikely]] {
       return {};
     }
     bool need_visit[orientations] = { };
     need_visit[init_rot] = true;
     std::array<inv_board_t<W, H>, orientations> cache;
     cache[init_rot].template set<start[0], start[1]>();
-    for (bool updated = true; updated;) {
+    for (bool updated = true; updated;) [[unlikely]] {
       updated = false;
       static_for<orientations>([&](auto i){
         if (!need_visit[i]) {
           return;
         }
         need_visit[i] = false;
-        for (bool updated2 = true; updated2;) {
+        for (bool updated2 = true; updated2;) [[likely]] {
           updated2 = false;
           static_for<MOVES.size()>([&](auto j){
             constexpr auto move = MOVES[j];
