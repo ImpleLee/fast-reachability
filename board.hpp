@@ -4,6 +4,7 @@
 #include <string>
 #include <bitset>
 #include <array>
+#include <sys/types.h>
 #include <tuple>
 #include <type_traits>
 #include <queue>
@@ -61,9 +62,9 @@ namespace reachability {
       }
     #define DEF_OPERATOR(ret, op, param, expr, expr2) \
       constexpr ret &operator op##=(param) { \
-        for (std::size_t i = 0; i < num_of_under; ++i) { \
+        static_for<num_of_under>([&](auto i) { \
           data[i] op##= expr; \
-        } \
+        }); \
         return *this; \
       } \
       DEF_DUAL_OPERATOR(ret, op, param, expr2)
@@ -78,14 +79,15 @@ namespace reachability {
           data[last] = std::bitset<used_per_under>{s, 0, used_per_under - remaining_in_last, ' ', 'X'}.to_ullong(); \
         } \
         constexpr explicit name(const name2 &other) { \
-          for (std::size_t i = 0; i < num_of_under; ++i) \
+          static_for<num_of_under>([&](auto i) { \
             data[i] = ~other.data[i]; \
+          }); \
         } \
         constexpr name operator~() const { \
           name other; \
-          for (std::size_t i = 0; i < num_of_under; ++i) { \
+          static_for<num_of_under>([&](auto i) { \
             other.data[i] = ~data[i]; \
-          } \
+          }); \
           return other; \
         } \
         template <int x, int y> \
@@ -102,35 +104,31 @@ namespace reachability {
           return data[a[1]] & one<a[0]> ? 1 : 0; \
         } \
         constexpr bool any() const { \
-          for (std::size_t i = 0; i < last; ++i) { \
-            if (data[i] & mask) { \
-              return true; \
-            } \
-          } \
-          if (data[last] & last_mask) { \
-            return true; \
-          } \
-          return false; \
+          under_t ret = 0; \
+          static_for<last>([&](auto i) { \
+            ret |= data[i]; \
+          }); \
+          ret &= mask; \
+          ret |= data[last] & last_mask; \
+          return ret; \
         } \
         constexpr bool operator!=(const name &other) const { \
-          for (std::size_t i = 0; i < last; ++i) { \
-            if ((data[i] ^ other.data[i]) & mask) { \
-              return true; \
-            } \
-          } \
-          if ((data[last] ^ other.data[last]) & last_mask) { \
-            return true; \
-          } \
-          return false; \
+          under_t ret = 0; \
+          static_for<last>([&](auto i) { \
+            ret |= data[i] ^ other.data[i]; \
+          }); \
+          ret &= mask; \
+          ret |= (data[last] ^ other.data[last]) & last_mask; \
+          return ret; \
         } \
         DEF_OPERATOR(name, &, const name &rhs, rhs.data[i], rhs) \
         DEF_OPERATOR(name, |, const name &rhs, rhs.data[i], rhs) \
         constexpr name & operator>>=(std::size_t i) { \
-          for (std::size_t j = 0; j < last; ++j) { \
+          static_for<last>([&](auto j) { \
             data[j] &= mask; \
             data[j] >>= i; \
             data[j] |= data[j + 1] << (used_per_under - i); \
-          } \
+          }); \
           data[last] &= last_mask; \
           data[last] >>= i; \
           return *this; \
@@ -157,13 +155,13 @@ namespace reachability {
           return *this; \
         } \
         constexpr name & operator<<=(std::size_t i) { \
-          for (std::size_t j = 0; j < last; ++j) { \
+          static_for<last>([&](auto j) { \
             data[j] &= mask; \
-          } \
-          for (std::size_t j = last; j > 0; --j) { \
-            data[j] <<= i; \
-            data[j] |= data[j - 1] >> (used_per_under - i); \
-          } \
+          }); \
+          static_for<last>([&](auto j) { \
+            data[last - j] <<= i; \
+            data[last - j] |= data[last - j - 1] >> (used_per_under - i); \
+          }); \
           data[0] <<= i; \
           return *this; \
         } \
@@ -352,10 +350,10 @@ namespace reachability {
         positions[i] &= start;
       });
       inv_board_t temp = positions[0];
-      for (std::size_t i = 1; i < N; ++i) {
-        positions[i] &= ~temp;
-        temp |= positions[i];
-      }
+      static_for<N-1>([&](auto i) {
+        positions[i + 1] &= ~temp;
+        temp |= positions[i + 1];
+      });
       return positions;
     }
     template <blocks::block block, coord start, bool use_optimize=false>
@@ -421,9 +419,9 @@ namespace reachability {
           });
         });
       }
-      for (int i = 0; i < orientations; ++i) {
+      static_for<orientations>([&](auto i){
         cache[i] &= landable_positions(usable[i]);
-      }
+      });
       return cache;
     }
     template <coord start, bool use_optimize=false>
