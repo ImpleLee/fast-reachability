@@ -94,43 +94,11 @@ namespace reachability::blocks {
     }},
     common
   };
-  inline constexpr block<1, 0, 4, 0> O_1 = {
+  inline constexpr block<1, 0, 4, 0> O = {
     {{
       {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // 0
     }},
     {}
-  };
-  [[deprecated("use 1-status O please")]]
-  [[maybe_unused]]
-  inline constexpr block<4, 2, 4, 5> O = {
-    {{
-      {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // 0
-      {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // R
-      {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}, // 2
-      {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}}  // L
-    }},
-    {{
-      {{
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-        // {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-      }},
-      {{
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-        // {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-      }},
-      {{
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-        // {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-      }},
-      {{
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-        // {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-        {{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}},
-      }}
-    }}
   };
   inline constexpr block<4, 2, 4, 5> I = {
     {{
@@ -171,7 +139,7 @@ namespace reachability::blocks {
       case 'S': f.template operator()<S>(); return;
       case 'J': f.template operator()<J>(); return;
       case 'L': f.template operator()<L>(); return;
-      case 'O': f.template operator()<O_1>(); return;
+      case 'O': f.template operator()<O>(); return;
       case 'I': f.template operator()<I>(); return;
     }
   }
