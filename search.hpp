@@ -152,10 +152,10 @@ namespace reachability::search {
     });
     return cache;
   }
-  template <auto call_with_block, coord start, unsigned init_rot=0, unsigned W, unsigned H>
+  template <typename RS, coord start, unsigned init_rot=0, unsigned W, unsigned H>
   [[gnu::noinline]]
   constexpr void binary_bfs(inv_board_t<W, H> *ret, const board_t<W, H> &data, char block) {
-    call_with_block(block, [&]<blocks::block B>() {
+    call_with_block<RS>(block, [&]<blocks::block B>() {
       auto info = binary_bfs<B, start, init_rot>(data);
       for (std::size_t i = 0; i < info.size(); ++i) {
         ret[i] = info[i];
@@ -224,10 +224,10 @@ namespace reachability::search {
     });
     return true_ret;
   }
-  template <auto call_with_block, unsigned W, unsigned H>
+  template <typename RS, unsigned W, unsigned H>
   [[gnu::noinline]]
   constexpr void ordinary_bfs_without_binary(inv_board_t<W, H> *ret, const board_t<W, H> &data, char block, const coord &start, unsigned init_rot=0) {
-    call_with_block(block, [&]<blocks::block B>() {
+    call_with_block<RS>(block, [&]<blocks::block B>() {
       auto info = ordinary_bfs_without_binary(data, B, start, init_rot);
       for (std::size_t i = 0; i < info.size(); ++i) {
         ret[i] = info[i];

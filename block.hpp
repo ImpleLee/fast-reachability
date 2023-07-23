@@ -97,8 +97,20 @@ namespace reachability::blocks {
     {{{0, 0}, {0, 1}, {0, -1}, {0, -2}}},   // L
   }}};
 
-  namespace SRS {
-    inline constexpr pure_kick<4, 2, 5> common_kick = {{{
+  template <typename RS>
+  inline constexpr auto call_with_block = nullptr;
+
+  template <typename RS>
+  constexpr int get_orientations(char ch) {
+    int ret = 0;
+    call_with_block<RS>(ch, [&]<block b>() {
+      ret = b.ORIENTATIONS;
+    });
+    return ret;
+  }
+
+  struct SRS { // used as a namespace but usable as a template parameter
+    static inline constexpr pure_kick<4, 2, 5> common_kick = {{{
       {{ // 0
         {{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}}},  // -> R
         {{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}}}      // -> L
@@ -116,7 +128,7 @@ namespace reachability::blocks {
         {{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}}    // -> 2
       }}
     }}};
-    inline constexpr pure_kick<4, 2, 5> I_kick = {{{
+    static inline constexpr pure_kick<4, 2, 5> I_kick = {{{
       {{ // 0
         {{{0, 0}, {-2, 0}, {1, 0}, {-2, -1}, {1, 2}}},    // -> R
         {{{0, 0}, {-1, 0}, {2, 0}, {-1, 2}, {2, -1}}},    // -> L
@@ -134,33 +146,30 @@ namespace reachability::blocks {
         {{{0, 0}, {-2, 0}, {1, 0}, {-2, -1}, {1, 2}}},    // -> 2
       }}
     }}};
-    inline constexpr auto T = ::reachability::blocks::T + common_kick;
-    inline constexpr auto Z = ::reachability::blocks::Z + common_kick;
-    inline constexpr auto S = ::reachability::blocks::S + common_kick;
-    inline constexpr auto J = ::reachability::blocks::J + common_kick;
-    inline constexpr auto L = ::reachability::blocks::L + common_kick;
-    inline constexpr auto O = ::reachability::blocks::O + no_kick;
-    inline constexpr auto I = ::reachability::blocks::I + I_kick;
-    inline constexpr auto call_with_block =
-        []<typename F>(char ch, F f) {
-      switch (ch) {
-        case 'T': f.template operator()<T>(); return;
-        case 'Z': f.template operator()<Z>(); return;
-        case 'S': f.template operator()<S>(); return;
-        case 'J': f.template operator()<J>(); return;
-        case 'L': f.template operator()<L>(); return;
-        case 'O': f.template operator()<O>(); return;
-        case 'I': f.template operator()<I>(); return;
-      }
-    };
-    constexpr int get_orientations(char ch) {
-      int ret = 0;
-      call_with_block(ch, [&]<block b>() {
-        ret = b.ORIENTATIONS;
-      });
-      return ret;
+    static inline constexpr auto T = blocks::T + common_kick;
+    static inline constexpr auto Z = blocks::Z + common_kick;
+    static inline constexpr auto S = blocks::S + common_kick;
+    static inline constexpr auto J = blocks::J + common_kick;
+    static inline constexpr auto L = blocks::L + common_kick;
+    static inline constexpr auto O = blocks::O + no_kick;
+    static inline constexpr auto I = blocks::I + I_kick;
+  private:
+    ~SRS();
+  };
+
+  template <>
+  inline constexpr auto call_with_block<SRS> =
+      []<typename F>(char ch, F f) {
+    switch (ch) {
+      case 'T': f.template operator()<SRS::T>(); return;
+      case 'Z': f.template operator()<SRS::Z>(); return;
+      case 'S': f.template operator()<SRS::S>(); return;
+      case 'J': f.template operator()<SRS::J>(); return;
+      case 'L': f.template operator()<SRS::L>(); return;
+      case 'O': f.template operator()<SRS::O>(); return;
+      case 'I': f.template operator()<SRS::I>(); return;
     }
-  }
+  };
 }
 namespace reachability {
   using blocks::block;

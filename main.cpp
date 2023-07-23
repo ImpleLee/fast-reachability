@@ -58,9 +58,9 @@ array<double, 2> test(const BOARD &b, const string &name, char block) {
   cout << "BOARD " << name << endl;
   cout << " BLOCK " << block << endl;
   inv_board_t<WIDTH, HEIGHT> binary[4], ordinary[4];
-  binary_bfs<SRS::call_with_block, start, init_rot>(binary, b, block);
-  ordinary_bfs_without_binary<SRS::call_with_block>(ordinary, b, block, start, init_rot);
-  for (int i = 0; i < SRS::get_orientations(block); ++i) {
+  binary_bfs<SRS, start, init_rot>(binary, b, block);
+  ordinary_bfs_without_binary<SRS>(ordinary, b, block, start, init_rot);
+  for (int i = 0; i < get_orientations<SRS>(block); ++i) {
     if (binary[i] != ordinary[i]) {
       cout << "  binary[" << i << "] != ordinary[" << i << "]" << endl;
       cout << to_string(binary[i], ordinary[i], b);
@@ -69,9 +69,9 @@ array<double, 2> test(const BOARD &b, const string &name, char block) {
       cout << to_string(binary[i], b);
     }
   }
-  auto binary_time = bench([&](){binary_bfs<SRS::call_with_block, start, init_rot>(binary, b, block);}, 1000000);
+  auto binary_time = bench([&](){binary_bfs<SRS, start, init_rot>(binary, b, block);}, 1000000);
   cout << "  binary  : " << binary_time << "ns" << endl;
-  auto ordinary_time = bench([&](){ordinary_bfs_without_binary<SRS::call_with_block>(ordinary, b, block, start, init_rot);});
+  auto ordinary_time = bench([&](){ordinary_bfs_without_binary<SRS>(ordinary, b, block, start, init_rot);});
   cout << "  true ord: " << ordinary_time << "ns" << endl;
   return {binary_time, ordinary_time};
 }
