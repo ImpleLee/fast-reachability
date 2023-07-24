@@ -57,7 +57,7 @@ array<double, 2> test(const BOARD &b, const string &name, char block) {
   using namespace reachability::search;
   cout << "BOARD " << name << endl;
   cout << " BLOCK " << block << endl;
-  inv_board_t<WIDTH, HEIGHT> binary[4], ordinary[4];
+  BOARD binary[4], ordinary[4];
   binary_bfs<SRS, start, init_rot>(binary, b, block);
   ordinary_bfs_without_binary<SRS>(ordinary, b, block, start, init_rot);
   for (int i = 0; i < get_orientations<SRS>(block); ++i) {
