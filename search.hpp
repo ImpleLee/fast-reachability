@@ -34,16 +34,16 @@ namespace reachability::search {
     constexpr auto dx = reverse ? -d[0] : d[0];
     constexpr auto dy = reverse ? -d[1] : d[1];
     constexpr int move = dy * my_board_t::width + dx;
-    if (dy == 0) {
+    if constexpr (dy == 0) {
       if constexpr (move < 0) {
         board.template left_shift<-move>();
-      } else {
+      } else if constexpr (move > 0) {
         board.template right_shift<move>();
       }
     } else {
       if constexpr (move < 0) {
         board.template left_shift_carry<-move>();
-      } else {
+      } else if constexpr (move > 0) {
         board.template right_shift_carry<move>();
       }
     }
