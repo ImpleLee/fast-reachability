@@ -17,22 +17,6 @@ namespace reachability::board {
     static_assert(i >= 0 && i < under_bits);
     return under_t(1) << i;
   }();
-  template <unsigned W, unsigned H> struct board_t;
-
-  #define DEF_DUAL_OPERATOR(ret, op, param, expr2) \
-    constexpr ret operator op(param) const { \
-      ret result = *this; \
-      result op##= expr2; \
-      return result; \
-    }
-  #define DEF_OPERATOR(ret, op, param, expr, expr2) \
-    constexpr ret &operator op##=(param) { \
-      static_for<num_of_under>([&](auto i) { \
-        data[i] op##= expr; \
-      }); \
-      return *this; \
-    } \
-    DEF_DUAL_OPERATOR(ret, op, param, expr2)
 
   template <unsigned W, unsigned H>
   struct board_t {
