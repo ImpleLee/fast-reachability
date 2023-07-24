@@ -8,9 +8,7 @@
 #include <type_traits>
 
 namespace reachability::search {
-  using namespace utils;
   using namespace blocks;
-  using namespace board;
   template <unsigned W, unsigned H, int dx>
   static constexpr board_t<W, H> MASK = []() consteval {
     board_t<W, H> mask;
@@ -154,8 +152,8 @@ namespace reachability::search {
   }
   template <typename RS, coord start, unsigned init_rot=0, unsigned W, unsigned H>
   [[gnu::noinline]]
-  constexpr void binary_bfs(board_t<W, H> *ret, const board_t<W, H> &data, char block) {
-    call_with_block<RS>(block, [&]<blocks::block B>() {
+  constexpr void binary_bfs(board_t<W, H> *ret, const board_t<W, H> &data, char b) {
+    call_with_block<RS>(b, [&]<block B>() {
       auto info = binary_bfs<B, start, init_rot>(data);
       for (std::size_t i = 0; i < info.size(); ++i) {
         ret[i] = info[i];
@@ -226,8 +224,8 @@ namespace reachability::search {
   }
   template <typename RS, unsigned W, unsigned H>
   [[gnu::noinline]]
-  constexpr void ordinary_bfs_without_binary(board_t<W, H> *ret, const board_t<W, H> &data, char block, const coord &start, unsigned init_rot=0) {
-    call_with_block<RS>(block, [&]<blocks::block B>() {
+  constexpr void ordinary_bfs_without_binary(board_t<W, H> *ret, const board_t<W, H> &data, char b, const coord &start, unsigned init_rot=0) {
+    call_with_block<RS>(b, [&]<block B>() {
       auto info = ordinary_bfs_without_binary(data, B, start, init_rot);
       for (std::size_t i = 0; i < info.size(); ++i) {
         ret[i] = info[i];

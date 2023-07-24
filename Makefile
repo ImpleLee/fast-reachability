@@ -1,5 +1,5 @@
 CC = g++
-CXXFLAGS = -std=c++2b -g -flto=auto -fwhole-program -O3 -Wall -Wextra -march=native
+CXXFLAGS = -std=c++2b -g -flto=auto -O3 -Wall -Wextra -Werror -march=native
 TARGETS := $(patsubst %.cpp, build/%, $(wildcard *.cpp))
 
 run: all

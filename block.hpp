@@ -3,8 +3,6 @@
 
 namespace reachability {
   using coord = std::array<signed char, 2>;
-}
-namespace reachability::blocks {
   template <int orientations, int rotations, int block_per_mino, int kick_per_rotation>
   struct block {
     using mino = std::array<coord, block_per_mino>;
@@ -25,7 +23,8 @@ namespace reachability::blocks {
       return (from + rotation_num + 1) % orientations;
     }
   };
-
+}
+namespace reachability::blocks {
   template <int block_per_mino, int orientations>
   struct pure_block {
     using mino = std::array<coord, block_per_mino>;
@@ -173,7 +172,4 @@ namespace reachability::blocks {
       case 'I': f.template operator()<SRS::I>(); return;
     }
   };
-}
-namespace reachability {
-  using blocks::block;
 }

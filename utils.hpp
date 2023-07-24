@@ -1,7 +1,7 @@
 #pragma once
 #include <type_traits>
 #include <utility>
-namespace reachability::utils {
+namespace reachability {
   template<typename F, std::size_t... S>
   [[gnu::always_inline]]
   constexpr void static_for(F&& function, std::index_sequence<S...>) {

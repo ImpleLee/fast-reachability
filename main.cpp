@@ -55,6 +55,7 @@ array<double, 2> test(const BOARD &b, const string &name) {
 template <bool print=false, reachability::coord start=reachability::coord{4, 20}, unsigned init_rot=0>
 array<double, 2> test(const BOARD &b, const string &name, char block) {
   using namespace reachability::search;
+  using namespace reachability::blocks;
   cout << "BOARD " << name << endl;
   cout << " BLOCK " << block << endl;
   BOARD binary[4], ordinary[4];
