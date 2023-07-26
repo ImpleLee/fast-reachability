@@ -15,11 +15,6 @@ namespace reachability {
   struct board_t {
     static constexpr auto under_bits = std::numeric_limits<under_t>::digits;
     static_assert(under_bits >= W);
-    template <int i>
-    static constexpr under_t one = [](){
-      static_assert(i >= 0 && i < under_bits);
-      return under_t(1) << i;
-    }();
     static constexpr auto width = W;
     static constexpr auto height = H;
     static constexpr auto lines_per_under = under_bits / W;
