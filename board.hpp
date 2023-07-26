@@ -1,4 +1,5 @@
 #pragma once
+#include "block.hpp"
 #include "utils.hpp"
 #include <limits>
 #include <string>
@@ -99,70 +100,26 @@ namespace reachability {
       result ^= rhs;
       return result;
     }
-    constexpr board_t & operator>>=(std::size_t i) {
-      static_for<last>([&](auto j) {
-        data[j] &= mask;
-        data[j] >>= i;
-        data[j] |= data[j + 1] << (used_per_under - i);
-      });
-      data[last] &= last_mask;
-      data[last] >>= i;
-      return *this;
-    }
-    constexpr board_t operator>>(std::size_t i) const {
-      board_t result = *this;
-      result >>= i;
-      return result;
-    }
-    template <std::size_t i>
-    constexpr board_t & right_shift_carry() {
-      static_for<last>([&](auto j) {
-        data[j] &= mask;
-        data[j] >>= i;
-        data[j] |= data[j + 1] << (used_per_under - i);
-      });
-      data[last] &= last_mask;
-      data[last] >>= i;
-      return *this;
-    }
-    template <std::size_t i>
-    constexpr board_t & right_shift() {
-      static_for<last>([&](auto j) {
-        data[j] &= mask;
-        data[j] >>= i;
-      });
-      data[last] &= last_mask;\
-      data[last] >>= i;
-      return *this;
-    }
-    constexpr board_t & operator<<=(std::size_t i) {
-      static_for<last>([&](auto j) {
-        data[last - j] <<= i;
-        data[last - j] |= (data[last - j - 1] & mask) >> (used_per_under - i);
-      });
-      data[0] <<= i;
-      return *this;
-    }
-    constexpr board_t operator<<(std::size_t i) const {
-      board_t result = *this;
-      result <<= i;
-      return result;
-    }
-    template <std::size_t i>
-    constexpr board_t & left_shift_carry() {
-      static_for<last>([&](auto j) {
-        data[last - j] <<= i;
-        data[last - j] |= (data[last - j - 1] & mask) >> (used_per_under - i);
-      });
-      data[0] <<= i;
-      return *this;
-    }
-    template <std::size_t i>
-    constexpr board_t & left_shift() {
-      static_for<num_of_under>([&](auto j) {
-        data[j] <<= i;
-      });
-      return *this;
+    template <coord d, bool check = true>
+    constexpr void move() {
+      constexpr int dx = d[0], dy = d[1];
+      constexpr int move = dy * W + dx;
+      if constexpr (dy == 0) {
+        if constexpr (move > 0) {
+          left_shift<move>();
+        } else if constexpr (move < 0) {
+          right_shift<-move>();
+        }
+      } else {
+        if constexpr (move > 0) {
+          left_shift_carry<move>();
+        } else if constexpr (move < 0) {
+          right_shift_carry<-move>();
+        }
+      }
+      if constexpr (check && dx != 0) {
+        *this &= mask_move<dx>();
+      }
     }
     friend constexpr std::string to_string(const board_t &board) {
       std::string ret;
@@ -245,5 +202,60 @@ namespace reachability {
     }
   private:
     std::array<under_t, num_of_under> data = {};
+        template <std::size_t i>
+    constexpr board_t & right_shift_carry() {
+      static_for<last>([&](auto j) {
+        data[j] &= mask;
+        data[j] >>= i;
+        data[j] |= data[j + 1] << (used_per_under - i);
+      });
+      data[last] &= last_mask;
+      data[last] >>= i;
+      return *this;
+    }
+    template <std::size_t i>
+    constexpr board_t & right_shift() {
+      static_for<last>([&](auto j) {
+        data[j] &= mask;
+        data[j] >>= i;
+      });
+      data[last] &= last_mask;\
+      data[last] >>= i;
+      return *this;
+    }
+    template <std::size_t i>
+    constexpr board_t & left_shift_carry() {
+      static_for<last>([&](auto j) {
+        data[last - j] <<= i;
+        data[last - j] |= (data[last - j - 1] & mask) >> (used_per_under - i);
+      });
+      data[0] <<= i;
+      return *this;
+    }
+    template <std::size_t i>
+    constexpr board_t & left_shift() {
+      static_for<num_of_under>([&](auto j) {
+        data[j] <<= i;
+      });
+      return *this;
+    }
+    template <int dx>
+    static constexpr board_t mask_move() {
+      board_t mask;
+      if constexpr (dx > 0) {
+        static_for<dx>([&](auto i) {
+          static_for<H>([&](auto j) {
+            mask.template set<i, j>();
+          });
+        });
+      } else if constexpr (dx < 0) {
+        static_for<-dx>([&](auto i) {
+          static_for<H>([&](auto j) {
+            mask.template set<W - 1 - i, j>();
+          });
+        });
+      }
+      return ~mask;
+    }
   };
 }

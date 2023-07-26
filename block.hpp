@@ -3,6 +3,9 @@
 
 namespace reachability {
   using coord = std::array<signed char, 2>;
+  constexpr coord operator-(const coord &co) {
+    return {(signed char)-co[0], (signed char)-co[1]};
+  }
   template <int orientations, int rotations, int block_per_mino, int kick_per_rotation>
   struct block {
     using mino = std::array<coord, block_per_mino>;
