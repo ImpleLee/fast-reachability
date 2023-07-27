@@ -10,7 +10,7 @@
 #include <bit>
 
 namespace reachability {
-  template <unsigned W, unsigned H, typename under_t=std::uint_fast32_t>
+  template <unsigned W, unsigned H, typename under_t=std::uint64_t>
     requires std::numeric_limits<under_t>::is_integer && std::is_unsigned_v<under_t>
   struct board_t {
     static constexpr auto under_bits = std::numeric_limits<under_t>::digits;
@@ -199,32 +199,48 @@ namespace reachability {
     std::array<under_t, num_of_under> data = {};
         template <std::size_t i>
     constexpr board_t & right_shift_carry() {
+      std::array<under_t, num_of_under> temp = data;
+      static_for<num_of_under>([&](auto j) {
+        temp[j] <<= used_per_under - i;
+      });
       static_for<last>([&](auto j) {
         data[j] &= mask;
-        data[j] >>= i;
-        data[j] |= data[j + 1] << (used_per_under - i);
       });
       data[last] &= last_mask;
-      data[last] >>= i;
+      static_for<num_of_under>([&](auto j) {
+        data[j] >>= i;
+      });
+      static_for<last>([&](auto j) {
+        data[j] |= temp[j + 1];
+      });
       return *this;
     }
     template <std::size_t i>
     constexpr board_t & right_shift() {
       static_for<last>([&](auto j) {
         data[j] &= mask;
+      });
+      data[last] &= last_mask;
+      static_for<num_of_under>([&](auto j) {
         data[j] >>= i;
       });
-      data[last] &= last_mask;\
-      data[last] >>= i;
       return *this;
     }
     template <std::size_t i>
     constexpr board_t & left_shift_carry() {
-      static_for<last>([&](auto j) {
-        data[last - j] <<= i;
-        data[last - j] |= (data[last - j - 1] & mask) >> (used_per_under - i);
+      std::array<under_t, num_of_under> temp = data;
+      static_for<num_of_under>([&](auto j) {
+        temp[j] &= mask;
       });
-      data[0] <<= i;
+      static_for<num_of_under>([&](auto j) {
+        temp[j] >>= used_per_under - i;
+      });
+      static_for<num_of_under>([&](auto j) {
+        data[j] <<= i;
+      });
+      static_for<last>([&](auto j) {
+        data[j + 1] |= temp[j];
+      });
       return *this;
     }
     template <std::size_t i>
