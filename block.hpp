@@ -2,9 +2,9 @@
 #include <array>
 
 namespace reachability {
-  using coord = std::array<signed char, 2>;
+  using coord = std::array<int, 2>;
   constexpr coord operator-(const coord &co) {
-    return {(signed char)-co[0], (signed char)-co[1]};
+    return {-co[0], -co[1]};
   }
   template <int orientations, int rotations, int block_per_mino, int kick_per_rotation>
   struct block {
@@ -50,14 +50,7 @@ namespace reachability::blocks {
     return {b.minos, k.kicks};
   }
 
-  inline constexpr pure_kick<0, 0, 0> no_kick;
-  template <int orientations, int block_per_mino>
-  constexpr block<orientations, 0, block_per_mino, 0> operator+(
-    const pure_block<block_per_mino, orientations> &b,
-    const pure_kick<0, 0, 0> &
-  ) {
-    return {b.minos, {}};
-  }
+  inline constexpr pure_kick<1, 0, 0> no_rotation;
 
   inline constexpr pure_block<4, 4> T = {{{
     {{{-1, 0}, {0, 0}, {1, 0}, {0, 1}}},  // 0
@@ -156,7 +149,7 @@ namespace reachability::blocks {
     static inline constexpr auto S = blocks::S + common_kick;
     static inline constexpr auto J = blocks::J + common_kick;
     static inline constexpr auto L = blocks::L + common_kick;
-    static inline constexpr auto O = blocks::O + no_kick;
+    static inline constexpr auto O = blocks::O + no_rotation;
     static inline constexpr auto I = blocks::I + I_kick;
   private:
     ~SRS();
