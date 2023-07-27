@@ -5,6 +5,7 @@
 #include <tuple>
 #include <queue>
 #include <array>
+#include <vector>
 #include <type_traits>
 
 namespace reachability::search {
@@ -114,13 +115,13 @@ namespace reachability::search {
   }
   template <typename RS, coord start, unsigned init_rot=0, unsigned W, unsigned H>
   [[gnu::noinline]]
-  constexpr void binary_bfs(board_t<W, H> *ret, const board_t<W, H> &data, char b) {
+  constexpr std::vector<board_t<W, H>> binary_bfs(const board_t<W, H> &data, char b) {
+    std::vector<board_t<W, H>> ret;
     call_with_block<RS>(b, [&]<block B>() {
       auto info = binary_bfs<B, start, init_rot>(data);
-      for (std::size_t i = 0; i < info.size(); ++i) {
-        ret[i] = info[i];
-      }
+      ret = std::vector(info.begin(), info.end());
     });
+    return ret;
   }
   template <unsigned W, unsigned H>
   auto ordinary_bfs_without_binary(const board_t<W, H> &data, const auto &block, const coord &start, unsigned init_rot) {
@@ -186,12 +187,12 @@ namespace reachability::search {
   }
   template <typename RS, unsigned W, unsigned H>
   [[gnu::noinline]]
-  constexpr void ordinary_bfs_without_binary(board_t<W, H> *ret, const board_t<W, H> &data, char b, const coord &start, unsigned init_rot=0) {
+  constexpr std::vector<board_t<W, H>> ordinary_bfs_without_binary(const board_t<W, H> &data, char b, const coord &start, unsigned init_rot=0) {
+    std::vector<board_t<W, H>> ret;
     call_with_block<RS>(b, [&]<block B>() {
       auto info = ordinary_bfs_without_binary(data, B, start, init_rot);
-      for (std::size_t i = 0; i < info.size(); ++i) {
-        ret[i] = info[i];
-      }
+      ret = std::vector(info.begin(), info.end());
     });
+    return ret;
   }
 }

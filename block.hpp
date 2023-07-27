@@ -98,15 +98,6 @@ namespace reachability::blocks {
     static_assert(std::is_same_v<RS, decltype(_)>, "unregistered rotation system");
   };
 
-  template <typename RS>
-  constexpr int get_orientations(char ch) {
-    int ret = 0;
-    call_with_block<RS>(ch, [&]<block b>() {
-      ret = b.ORIENTATIONS;
-    });
-    return ret;
-  }
-
   struct SRS { // used as a namespace but usable as a template parameter
     static inline constexpr pure_kick<4, 2, 5> common_kick = {{{
       {{ // 0

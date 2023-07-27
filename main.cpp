@@ -58,10 +58,14 @@ array<double, 2> test(const BOARD &b, const string &name, char block) {
   using namespace reachability::blocks;
   cout << "BOARD " << name << endl;
   cout << " BLOCK " << block << endl;
-  BOARD binary[4], ordinary[4];
-  binary_bfs<SRS, start, init_rot>(binary, b, block);
-  ordinary_bfs_without_binary<SRS>(ordinary, b, block, start, init_rot);
-  for (int i = 0; i < get_orientations<SRS>(block); ++i) {
+  auto binary = binary_bfs<SRS, start, init_rot>(b, block);
+  auto ordinary = ordinary_bfs_without_binary<SRS>(b, block, start, init_rot);
+  if (binary.size() != ordinary.size()) {
+    cout << "  binary.size() != ordinary.size()" << endl;
+    cout << "  binary.size() = " << binary.size() << endl;
+    cout << "  ordinary.size() = " << ordinary.size() << endl;
+  }
+  for (size_t i = 0; i < min(binary.size(), ordinary.size()); ++i) {
     if (binary[i] != ordinary[i]) {
       cout << "  binary[" << i << "] != ordinary[" << i << "]" << endl;
       cout << to_string(binary[i], ordinary[i], b);
@@ -70,9 +74,9 @@ array<double, 2> test(const BOARD &b, const string &name, char block) {
       cout << to_string(binary[i], b);
     }
   }
-  auto binary_time = bench([&](){binary_bfs<SRS, start, init_rot>(binary, b, block);}, 1000000);
+  auto binary_time = bench([&](){binary_bfs<SRS, start, init_rot>(b, block);}, 1000000);
   cout << "  binary  : " << binary_time << "ns" << endl;
-  auto ordinary_time = bench([&](){ordinary_bfs_without_binary<SRS>(ordinary, b, block, start, init_rot);});
+  auto ordinary_time = bench([&](){ordinary_bfs_without_binary<SRS>(b, block, start, init_rot);});
   cout << "  true ord: " << ordinary_time << "ns" << endl;
   return {binary_time, ordinary_time};
 }
