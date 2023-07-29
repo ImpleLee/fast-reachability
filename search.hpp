@@ -44,39 +44,45 @@ namespace reachability::search {
     return positions;
   }
   template <block block, coord start, unsigned init_rot, unsigned W, unsigned H>
-  constexpr std::array<board_t<W, H>, block.ORIENTATIONS> binary_bfs(const board_t<W, H> &data) {
+  constexpr std::array<board_t<W, H>, block.SHAPES> binary_bfs(const board_t<W, H> &data) {
     constexpr int orientations = block.ORIENTATIONS;
     constexpr int rotations = block.ROTATIONS;
     constexpr int kicks = block.KICK_PER_ROTATION;
-    board_t<W, H> usable[orientations];
+    constexpr int shapes = block.SHAPES;
+    board_t<W, H> usable[shapes];
     std::array<board_t<W, H>, kicks> kicks2[orientations][rotations];
-    static_for<orientations>([&](auto i) {
+    static_for<shapes>([&](auto i) {
       usable[i] = usable_positions<block.minos[i]>(data);
     });
     static_for<orientations>([&](auto i) {
+      constexpr auto index = block.mino_index[i];
       static_for<rotations>([&](auto j) {
         constexpr auto target = block.rotation_target(i, j);
-        kicks2[i][j] = kick_positions<block.kicks[i][j]>(usable[i], usable[target]);
+        constexpr auto index2 = block.mino_index[target];
+        kicks2[i][j] = kick_positions<block.kicks[i][j]>(usable[index], usable[index2]);
       });
     });
     constexpr std::array<coord, 3> MOVES = {{{-1, 0}, {1, 0}, {0, -1}}};
-    if (!usable[init_rot].template get<start[0], start[1]>()) [[unlikely]] {
+    constexpr coord start2 = start + block.mino_offset[init_rot];
+    constexpr auto init_rot2 = block.mino_index[init_rot];
+    if (!usable[init_rot2].template get<start2[0], start2[1]>()) [[unlikely]] {
       return {};
     }
     bool need_visit[orientations] = { };
     need_visit[init_rot] = true;
     std::array<board_t<W, H>, orientations> cache;
-    cache[init_rot].template set<start[0], start[1]>();
+    cache[init_rot].template set<start2[0], start2[1]>();
     for (bool updated = true; updated;) [[unlikely]] {
       updated = false;
       static_for<orientations>([&](auto i){
         if (!need_visit[i]) {
           return;
         }
+        constexpr auto index = block.mino_index[i];
         need_visit[i] = false;
         for (bool updated2 = true; updated2;) [[likely]] {
           updated2 = false;
-          auto mask = usable[i] & ~cache[i];
+          auto mask = usable[index] & ~cache[i];
           decltype(mask) result;
           static_for<MOVES.size()>([&](auto j) {
             auto to = cache[i];
@@ -107,10 +113,15 @@ namespace reachability::search {
         });
       });
     }
+    std::array<board_t<W, H>, shapes> ret;
     static_for<orientations>([&](auto i){
-      cache[i] &= landable_positions(usable[i]);
+      constexpr auto index = block.mino_index[i];
+      ret[index] |= cache[i];
     });
-    return cache;
+    static_for<shapes>([&](auto i){
+      ret[i] &= landable_positions(usable[i]);
+    });
+    return ret;
   }
   template <typename RS, coord start, unsigned init_rot=0, unsigned W, unsigned H>
   [[gnu::noinline]]
@@ -127,6 +138,7 @@ namespace reachability::search {
   template <unsigned W, unsigned H>
   auto ordinary_bfs_without_binary(const board_t<W, H> &data, const auto &block, const coord &start, unsigned init_rot) {
     constexpr auto orientations = std::remove_cvref_t<decltype(block)>::ORIENTATIONS;
+    constexpr auto shapes = std::remove_cvref_t<decltype(block)>::SHAPES;
     bool my_data[H][W];
     static_for<H>([&](auto y) {
       static_for<W>([&](auto x) {
@@ -137,7 +149,8 @@ namespace reachability::search {
       return 0 <= x && unsigned(x) < W && 0 <= y && unsigned(y) < H;
     };
     auto usable = [&](int i, int x, int y) {
-      for (const auto &[dx, dy] : block.minos[i]) {
+      const auto index = block.mino_index[i];
+      for (const auto &[dx, dy] : block.minos[index]) {
         if (!in_range(x + dx, y + dy)) return false;
         if (my_data[y + dy][x + dx]) return false;
       }
@@ -158,7 +171,8 @@ namespace reachability::search {
       }
       return true;
     };
-    visit(init_rot, start[0], start[1]);
+    const auto start2 = start + block.mino_offset[init_rot];
+    visit(init_rot, start2[0], start2[1]);
     while (!q.empty()) {
       const auto [x, y, i] = q.front();
       q.pop();
@@ -174,12 +188,13 @@ namespace reachability::search {
         }
       }
     }
-    std::array<board_t<W, H>, orientations> true_ret;
+    std::array<board_t<W, H>, shapes> true_ret;
     static_for<orientations>([&](auto i) {
+      auto index = block.mino_index[i];
       static_for<H>([&](auto y) {
         static_for<W>([&](auto x) {
           if (ret[i][y][x]) {
-            true_ret[i].template set<x, y>();
+            true_ret[index].template set<x, y>();
           }
         });
       });

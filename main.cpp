@@ -34,10 +34,14 @@ template <reachability::block block, bool print=false, reachability::coord start
 array<double, 2> test(const BOARD &b, const string &name) {
   using namespace reachability::search;
   cout << "BOARD " << name << endl;
-  int length = block.ORIENTATIONS;
   auto binary = binary_bfs<block, start, init_rot>(b);
   auto ordinary = ordinary_bfs_without_binary(b, block, start, init_rot);
-  for (int i = 0; i < length; ++i) {
+  if (binary.size() != ordinary.size()) {
+    cout << "  binary.size() != ordinary.size()" << endl;
+    cout << "  binary.size() = " << binary.size() << endl;
+    cout << "  ordinary.size() = " << ordinary.size() << endl;
+  }
+  for (size_t i = 0; i < min(binary.size(), ordinary.size()); ++i) {
     if (binary[i] != ordinary[i]) {
       cout << "  binary[" << i << "] != ordinary[" << i << "]" << endl;
       cout << to_string(binary[i], ordinary[i], b);

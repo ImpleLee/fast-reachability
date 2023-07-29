@@ -6,18 +6,23 @@ namespace reachability {
   constexpr coord operator-(const coord &co) {
     return {-co[0], -co[1]};
   }
-  template <int orientations, int rotations, int block_per_mino, int kick_per_rotation>
+  template <int shapes, int orientations, int rotations, int block_per_mino, int kick_per_rotation>
   struct block {
     using mino = std::array<coord, block_per_mino>;
     using kick = std::array<coord, kick_per_rotation>;
+    static constexpr int SHAPES = shapes;
     static constexpr int ORIENTATIONS = orientations;
     static constexpr int ROTATIONS = rotations;
     static constexpr int BLOCK_PER_MINO = block_per_mino;
     static constexpr int KICK_PER_ROTATION = kick_per_rotation;
     [[no_unique_address]]
-    std::array<mino, orientations> minos;
+    std::array<mino, shapes> minos;
     [[no_unique_address]]
     std::array<std::array<kick, rotations>, orientations> kicks;
+    [[no_unique_address]]
+    std::array<int, orientations> mino_index;
+    [[no_unique_address]]
+    std::array<coord, orientations> mino_offset;
     static constexpr int rotation_target(int from, int rotation_num) {
       if constexpr (orientations == 4 && rotations == 2) {
         // cw & ccw
@@ -35,6 +40,40 @@ namespace reachability::blocks {
     std::array<mino, orientations> minos;
   };
 
+  template <int shapes, int block_per_mino, int orientations>
+  struct block_with_offset {
+    using mino = std::array<coord, block_per_mino>;
+    [[no_unique_address]]
+    std::array<mino, shapes> minos;
+    [[no_unique_address]]
+    std::array<int, orientations> mino_index;
+    [[no_unique_address]]
+    std::array<coord, orientations> mino_offset;
+  };
+  template <int block_per_mino, int orientations>
+  constexpr block_with_offset<orientations, block_per_mino, orientations> convert(const pure_block<block_per_mino, orientations> &b) {
+    block_with_offset<orientations, block_per_mino, orientations> ret;
+    for (int i = 0; i < orientations; ++i) {
+      ret.minos[i] = b.minos[i];
+      ret.mino_index[i] = i;
+      ret.mino_offset[i] = {0, 0};
+    }
+    return ret;
+  }
+
+  template <int shapes, int block_per_mino, int orientations>
+  constexpr block_with_offset<shapes, block_per_mino, orientations> convert(
+    const pure_block<block_per_mino, shapes> &b,
+    const std::array<int, orientations> &mino_index,
+    std::array<coord, orientations> mino_offset
+  ) {
+    return {
+      b.minos,
+      mino_index,
+      mino_offset
+    };
+  }
+
   template <int orientations, int rotations, int kick_per_rotation>
   struct pure_kick {
     using kick = std::array<coord, kick_per_rotation>;
@@ -42,12 +81,30 @@ namespace reachability::blocks {
     std::array<std::array<kick, rotations>, orientations> kicks;
   };
 
-  template <int orientations, int rotations, int block_per_mino, int kick_per_rotation>
-  constexpr block<orientations, rotations, block_per_mino, kick_per_rotation> operator+(
-    const pure_block<block_per_mino, orientations> &b,
+  constexpr coord operator+(const coord &co1, const coord &co2) {
+    return {co1[0] + co2[0], co1[1] + co2[1]};
+  }
+  template <int shapes, int orientations, int rotations, int block_per_mino, int kick_per_rotation>
+  constexpr block<shapes, orientations, rotations, block_per_mino, kick_per_rotation> operator+(
+    const block_with_offset<shapes, block_per_mino, orientations> &b,
     const pure_kick<orientations, rotations, kick_per_rotation> &k
   ) {
-    return {b.minos, k.kicks};
+    std::array<std::array<std::array<coord, kick_per_rotation>, rotations>, orientations> kicks;
+    for (int i = 0; i < orientations; ++i) {
+      for (int j = 0; j < rotations; ++j) {
+        const auto target = block<shapes, orientations, rotations, block_per_mino, kick_per_rotation>::rotation_target(i, j);
+        const auto offset = -b.mino_offset[i] + b.mino_offset[target];
+        for (int l = 0; l < kick_per_rotation; ++l) {
+          kicks[i][j][l] = k.kicks[i][j][l] + offset;
+        }
+      }
+    }
+    return {
+      b.minos,
+      kicks,
+      b.mino_index,
+      b.mino_offset
+    };
   }
 
   inline constexpr pure_kick<1, 0, 0> no_rotation;
@@ -58,16 +115,12 @@ namespace reachability::blocks {
     {{{1, 0}, {0, 0}, {-1, 0}, {0, -1}}}, // 2
     {{{0, -1}, {0, 0}, {0, 1}, {-1, 0}}}  // L
   }}};
-  inline constexpr pure_block<4, 4> Z  = {{{
+  inline constexpr pure_block<4, 2> Z  = {{{
     {{{-1, 1}, {0, 1}, {0, 0}, {1, 0}}},   // 0
-    {{{1, 1}, {1, 0}, {0, 0}, {0, -1}}},   // R
-    {{{1, -1}, {0, -1}, {0, 0}, {-1, 0}}}, // 2
     {{{-1, -1}, {-1, 0}, {0, 0}, {0, 1}}}  // L
   }}};
-  inline constexpr pure_block<4, 4> S = {{{
+  inline constexpr pure_block<4, 2> S = {{{
     {{{1, 1}, {0, 1}, {0, 0}, {-1, 0}}},   // 0
-    {{{1, -1}, {1, 0}, {0, 0}, {0, 1}}},   // R
-    {{{-1, -1}, {0, -1}, {0, 0}, {1, 0}}}, // 2
     {{{-1, 1}, {-1, 0}, {0, 0}, {0, -1}}}  // L
   }}};
   inline constexpr pure_block<4, 4> J = {{{
@@ -85,10 +138,8 @@ namespace reachability::blocks {
   inline constexpr pure_block<4, 1> O = {{{
     {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}},
   }}};
-  inline constexpr pure_block<4, 4> I = {{{
+  inline constexpr pure_block<4, 2> I = {{{
     {{{-1, 0}, {0, 0}, {1, 0}, {2, 0}}},   // 0
-    {{{0, 0}, {0, 1}, {0, -1}, {0, -2}}},  // R
-    {{{-1, 0}, {0, 0}, {1, 0}, {-2, 0}}},  // 2
     {{{0, 1}, {0, 2}, {0, 0}, {0, -1}}},   // L
   }}};
 
@@ -135,13 +186,28 @@ namespace reachability::blocks {
         {{{1, 0}, {-1, 0}, {2, 0}, {-1, -1}, {2, 2}}},
       }}
     }}};
-    static inline constexpr auto T = blocks::T + common_kick;
-    static inline constexpr auto Z = blocks::Z + common_kick;
-    static inline constexpr auto S = blocks::S + common_kick;
-    static inline constexpr auto J = blocks::J + common_kick;
-    static inline constexpr auto L = blocks::L + common_kick;
-    static inline constexpr auto O = blocks::O + no_rotation;
-    static inline constexpr auto I = blocks::I + I_kick;
+    static inline constexpr auto T = convert(blocks::T) + common_kick;
+    static inline constexpr auto Z = convert<2, 4, 4>(blocks::Z, {{0, 1, 0, 1}}, {{
+      {{0, 0}},
+      {{1, 0}},
+      {{0, -1}},
+      {{0, 0}}
+    }}) + common_kick;
+    static inline constexpr auto S = convert<2, 4, 4>(blocks::S, {{0, 1, 0, 1}}, {{
+      {{0, 0}},
+      {{1, 0}},
+      {{0, -1}},
+      {{0, 0}}
+    }}) + common_kick;
+    static inline constexpr auto J = convert(blocks::J) + common_kick;
+    static inline constexpr auto L = convert(blocks::L) + common_kick;
+    static inline constexpr auto O = convert(blocks::O) + no_rotation;
+    static inline constexpr auto I = convert<2, 4, 4>(blocks::I, {{0, 1, 0, 1}}, {{
+      {{0, 0}},
+      {{0, -1}},
+      {{-1, 0}},
+      {{0, 0}}
+    }}) + I_kick;
   private:
     ~SRS();
   };
