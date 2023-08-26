@@ -76,19 +76,19 @@ namespace reachability::search {
         need_visit[i] = false;
         for (bool updated2 = true; updated2;) [[likely]] {
           updated2 = false;
-          static_for<MOVES.size()>([&](auto j){
-            board_t mask = usable[i] & ~cache[i];
-            if (!mask.any()) {
-              return;
-            }
-            board_t to = cache[i];
+          auto mask = usable[i] & ~cache[i];
+          if (!mask.any()) break;
+          decltype(mask) result;
+          static_for<MOVES.size()>([&](auto j) {
+            auto to = cache[i];
             to.template move<MOVES[j]>();
-            to &= mask;
-            if (to.any()) {
-              cache[i] |= to;
-              updated2 = true;
-            }
+            result |= to;
           });
+          result &= mask;
+          if (result.any()) {
+            cache[i] |= result;
+            updated2 = true;
+          }
         }
         static_for<rotations>([&](auto j){
           constexpr int target = block.rotation_target(i, j);
