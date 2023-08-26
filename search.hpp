@@ -77,7 +77,6 @@ namespace reachability::search {
         for (bool updated2 = true; updated2;) [[likely]] {
           updated2 = false;
           auto mask = usable[i] & ~cache[i];
-          if (!mask.any()) break;
           decltype(mask) result;
           static_for<MOVES.size()>([&](auto j) {
             auto to = cache[i];
