@@ -48,8 +48,7 @@ namespace reachability {
       static_for<last>([&](auto i) {
         ret |= data[i];
       });
-      ret &= mask;
-      ret |= data[last] & last_mask;
+      ret |= data[last];
       return ret;
     }
     constexpr bool operator!=(const board_t &other) const {
@@ -60,6 +59,7 @@ namespace reachability {
       static_for<num_of_under>([&](auto i) {
         other.data[i] = ~data[i];
       });
+      other &= mask_board();
       return other;
     }
     constexpr board_t &operator&=(const board_t &rhs) {
@@ -167,7 +167,6 @@ namespace reachability {
       });
       return ret;
     }
-
     constexpr int clear_full_lines() {
       auto board = data;
       constexpr int needed = std::numeric_limits<decltype(W)>::digits - std::countl_zero(W) - 1;
@@ -197,30 +196,23 @@ namespace reachability {
     }
   private:
     std::array<under_t, num_of_under> data = {};
-        template <std::size_t i>
+    template <std::size_t i>
     constexpr board_t & right_shift_carry() {
       std::array<under_t, num_of_under> temp = data;
       static_for<num_of_under>([&](auto j) {
         temp[j] <<= used_per_under - i;
       });
-      static_for<last>([&](auto j) {
-        data[j] &= mask;
-      });
-      data[last] &= last_mask;
       static_for<num_of_under>([&](auto j) {
         data[j] >>= i;
       });
       static_for<last>([&](auto j) {
         data[j] |= temp[j + 1];
       });
+      *this &= mask_board();
       return *this;
     }
     template <std::size_t i>
     constexpr board_t & right_shift() {
-      static_for<last>([&](auto j) {
-        data[j] &= mask;
-      });
-      data[last] &= last_mask;
       static_for<num_of_under>([&](auto j) {
         data[j] >>= i;
       });
@@ -230,9 +222,6 @@ namespace reachability {
     constexpr board_t & left_shift_carry() {
       std::array<under_t, num_of_under> temp = data;
       static_for<num_of_under>([&](auto j) {
-        temp[j] &= mask;
-      });
-      static_for<num_of_under>([&](auto j) {
         temp[j] >>= used_per_under - i;
       });
       static_for<num_of_under>([&](auto j) {
@@ -241,6 +230,7 @@ namespace reachability {
       static_for<last>([&](auto j) {
         data[j + 1] |= temp[j];
       });
+      *this &= mask_board();
       return *this;
     }
     template <std::size_t i>
@@ -248,6 +238,7 @@ namespace reachability {
       static_for<num_of_under>([&](auto j) {
         data[j] <<= i;
       });
+      *this &= mask_board();
       return *this;
     }
     template <int dx>
@@ -267,6 +258,14 @@ namespace reachability {
         });
       }
       return ~mask;
+    }
+    static constexpr board_t mask_board() {
+      board_t ret;
+      static_for<last>([&](auto i) {
+        ret.data[i] = mask;
+      });
+      ret.data[last] = last_mask;
+      return ret;
     }
   };
 }
