@@ -8,6 +8,7 @@
 #include <type_traits>
 #include <cstdint>
 #include <bit>
+#include <experimental/simd>
 
 namespace reachability {
   template <unsigned W, unsigned H, typename under_t=std::uint64_t>
@@ -44,28 +45,18 @@ namespace reachability {
       return data[y / lines_per_under] & (under_t(1) << ((y % lines_per_under) * W + x)) ? 1 : 0;
     }
     constexpr bool any() const {
-      under_t ret = 0;
-      static_for<last>([&](auto i) {
-        ret |= data[i];
-      });
-      ret |= data[last];
-      return ret;
+      return reduce(data, std::bit_or<>{});
     }
     constexpr bool operator!=(const board_t &other) const {
       return (*this ^ other).any();
     }
     constexpr board_t operator~() const {
       board_t other;
-      static_for<num_of_under>([&](auto i) {
-        other.data[i] = ~data[i];
-      });
-      other &= mask_board();
+      other.data = mask_board() & ~data;
       return other;
     }
     constexpr board_t &operator&=(const board_t &rhs) {
-      static_for<num_of_under>([&](auto i) {
-        data[i] &= rhs.data[i];
-      });
+      data &= rhs.data;
       return *this;
     }
     constexpr board_t operator&(const board_t &rhs) const {
@@ -74,9 +65,7 @@ namespace reachability {
       return result;
     }
     constexpr board_t &operator|=(const board_t &rhs) {
-      static_for<num_of_under>([&](auto i) {
-        data[i] |= rhs.data[i];
-      });
+      data |= rhs.data;
       return *this;
     }
     constexpr board_t operator|(const board_t &rhs) const {
@@ -85,9 +74,7 @@ namespace reachability {
       return result;
     }
     constexpr board_t &operator^=(const board_t &rhs) {
-      static_for<num_of_under>([&](auto i) {
-        data[i] ^= rhs.data[i];
-      });
+      data ^= rhs.data;
       return *this;
     }
     constexpr board_t operator^(const board_t &rhs) const {
@@ -195,50 +182,36 @@ namespace reachability {
       return lines;
     }
   private:
-    std::array<under_t, num_of_under> data = {};
+    using data_t = std::experimental::fixed_size_simd<under_t, num_of_under>;
+    alignas(std::experimental::memory_alignment_v<data_t>) data_t data = {};
+    static constexpr std::experimental::fixed_size_simd<under_t, 1> zero = {};
     template <std::size_t i>
     constexpr board_t & right_shift_carry() {
-      std::array<under_t, num_of_under> temp = data;
-      static_for<num_of_under>([&](auto j) {
-        temp[j] <<= used_per_under - i;
-      });
-      static_for<num_of_under>([&](auto j) {
-        data[j] >>= i;
-      });
-      static_for<last>([&](auto j) {
-        data[j] |= temp[j + 1];
-      });
-      *this &= mask_board();
+      auto temp = data << (used_per_under - i);
+      auto [_, carry] = split<1, last>(temp);
+      data >>= i;
+      data |= to_fixed_size(concat(carry, zero));
+      data &= mask_board();
       return *this;
     }
     template <std::size_t i>
     constexpr board_t & right_shift() {
-      static_for<num_of_under>([&](auto j) {
-        data[j] >>= i;
-      });
+      data >>= i;
       return *this;
     }
     template <std::size_t i>
     constexpr board_t & left_shift_carry() {
-      std::array<under_t, num_of_under> temp = data;
-      static_for<num_of_under>([&](auto j) {
-        temp[j] >>= used_per_under - i;
-      });
-      static_for<num_of_under>([&](auto j) {
-        data[j] <<= i;
-      });
-      static_for<last>([&](auto j) {
-        data[j + 1] |= temp[j];
-      });
-      *this &= mask_board();
+      auto temp = data >> (used_per_under - i);
+      auto [carry, _] = split<last, 1>(temp);
+      data <<= i;
+      data |= to_fixed_size(concat(zero, carry));
+      data &= mask_board();
       return *this;
     }
     template <std::size_t i>
     constexpr board_t & left_shift() {
-      static_for<num_of_under>([&](auto j) {
-        data[j] <<= i;
-      });
-      *this &= mask_board();
+      data <<= i;
+      data &= mask_board();
       return *this;
     }
     template <int dx>
@@ -259,13 +232,13 @@ namespace reachability {
       }
       return ~mask;
     }
-    static constexpr board_t mask_board() {
+    static constexpr auto mask_board() {
       board_t ret;
       static_for<last>([&](auto i) {
         ret.data[i] = mask;
       });
       ret.data[last] = last_mask;
-      return ret;
+      return ret.data;
     }
   };
 }
