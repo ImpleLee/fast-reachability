@@ -83,25 +83,27 @@ namespace reachability {
       return result;
     }
     template <coord d, bool check = true>
-    constexpr void move() {
+    constexpr board_t move() const {
+      board_t result = *this;
       constexpr int dx = d[0], dy = d[1];
       constexpr int move = dy * W + dx;
       if constexpr (dy == 0) {
         if constexpr (move > 0) {
-          left_shift<move>();
+          result.left_shift<move>();
         } else if constexpr (move < 0) {
-          right_shift<-move>();
+          result.right_shift<-move>();
         }
       } else {
         if constexpr (move > 0) {
-          left_shift_carry<move>();
+          result.left_shift_carry<move>();
         } else if constexpr (move < 0) {
-          right_shift_carry<-move>();
+          result.right_shift_carry<-move>();
         }
       }
       if constexpr (check && dx != 0) {
-        *this &= mask_move<dx>();
+        result &= mask_move<dx>();
       }
+      return result;
     }
     friend constexpr std::string to_string(const board_t &board) {
       std::string ret;

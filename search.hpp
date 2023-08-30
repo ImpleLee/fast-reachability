@@ -14,17 +14,13 @@ namespace reachability::search {
   constexpr board_t<W, H> usable_positions(const board_t<W, H> &data) {
     board_t positions = ~board_t<W, H>();
     static_for<std::tuple_size_v<decltype(mino)>>([&](auto i) {
-      board_t temp = ~data;
-      temp.template move<-mino[i]>();
-      positions &= temp;
+      positions &= (~data).template move<-mino[i]>();
     });
     return positions;
   }
   template <unsigned W, unsigned H>
   constexpr board_t<W, H> landable_positions(const board_t<W, H> &usable) {
-    board_t temp = usable;
-    temp.template move<coord{0, 1}>();
-    return usable & ~temp;
+    return usable & ~usable.template move<coord{0, 1}>();
   }
   template <std::array kick, unsigned W, unsigned H>
   constexpr std::array<board_t<W, H>, std::tuple_size_v<decltype(kick)>>
@@ -32,9 +28,7 @@ namespace reachability::search {
     constexpr std::size_t N = std::tuple_size_v<decltype(kick)>;
     std::array<board_t<W, H>, N> positions;
     static_for<N>([&](auto i) {
-      positions[i] = end;
-      positions[i].template move<-kick[i]>();
-      positions[i] &= start;
+      positions[i] = start & end.template move<-kick[i]>();
     });
     board_t temp = positions[0];
     static_for<N-1>([&](auto i) {
@@ -80,28 +74,23 @@ namespace reachability::search {
         }
         constexpr auto index = block.mino_index[i];
         need_visit[i] = false;
-        for (bool updated2 = true; updated2;) [[likely]] {
-          updated2 = false;
-          auto mask = usable[index] & ~cache[i];
-          decltype(mask) result;
+        while (true) {
+          board_t<W, H> result;
           static_for<MOVES.size()>([&](auto j) {
-            auto to = cache[i];
-            to.template move<MOVES[j]>();
-            result |= to;
+            result |= cache[i].template move<MOVES[j]>();
           });
-          result &= mask;
-          if (result.any()) {
+          result &= usable[index] & ~cache[i];
+          if (result.any()) [[likely]] {
             cache[i] |= result;
-            updated2 = true;
+          } else {
+            break;
           }
         }
         static_for<rotations>([&](auto j){
           constexpr int target = block.rotation_target(i, j);
           board_t<W, H> to;
           static_for<kicks>([&](auto k){
-            board_t<W, H> from = cache[i] & kicks2[i][j][k];
-            from.template move<block.kicks[i][j][k], false>();
-            to |= from;
+            to |= (cache[i] & kicks2[i][j][k]).template move<block.kicks[i][j][k], false>();
           });
           board_t<W, H> det = to & ~cache[target];
           if (det.any()) {
