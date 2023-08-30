@@ -19,19 +19,19 @@ namespace reachability {
     static constexpr auto width = W;
     static constexpr auto height = H;
     static constexpr auto lines_per_under = under_bits / W;
-    static constexpr auto used_per_under = lines_per_under * W;
+    static constexpr auto used_bits_per_under = lines_per_under * W;
     static constexpr auto num_of_under = (H - 1) / lines_per_under + 1;
     static constexpr auto last = num_of_under - 1;
-    static constexpr auto remaining_per_under = under_bits - used_per_under;
+    static constexpr auto remaining_per_under = under_bits - used_bits_per_under;
     static constexpr auto mask = (~under_t(0)) >> remaining_per_under;
-    static constexpr auto remaining_in_last = num_of_under * used_per_under - H * W;
+    static constexpr auto remaining_in_last = num_of_under * used_bits_per_under - H * W;
     static constexpr auto last_mask = mask >> remaining_in_last;
     constexpr board_t() { }
     constexpr board_t(const std::string &s) {
       for (std::size_t i = 0; i < last; ++i) {
-        data[i] = std::bitset<used_per_under>{s, W * H - (i + 1) * used_per_under, used_per_under, ' ', 'X'}.to_ullong();
+        data[i] = static_cast<under_t>(std::bitset<used_bits_per_under>{s, W * H - (i + 1) * used_bits_per_under, used_bits_per_under, ' ', 'X'}.to_ullong());
       }
-      data[last] = std::bitset<used_per_under>{s, 0, used_per_under - remaining_in_last, ' ', 'X'}.to_ullong();
+      data[last] = static_cast<under_t>(std::bitset<used_bits_per_under>{s, 0, used_bits_per_under - remaining_in_last, ' ', 'X'}.to_ullong());
     }
     template <int x, int y>
     constexpr void set() {
@@ -83,26 +83,42 @@ namespace reachability {
       return result;
     }
     template <coord d, bool check = true>
-    constexpr board_t move() const {
-      board_t result = *this;
+    constexpr void move_() {
       constexpr int dx = d[0], dy = d[1];
-      constexpr int move = dy * W + dx;
       if constexpr (dy == 0) {
-        if constexpr (move > 0) {
-          result.left_shift<move>();
-        } else if constexpr (move < 0) {
-          result.right_shift<-move>();
+        if constexpr (dx > 0) {
+          data <<= dx;
+          data &= mask_board();
+        } else if constexpr (dx < 0) {
+          data >>= -dx;
         }
       } else {
-        if constexpr (move > 0) {
-          result.left_shift_carry<move>();
-        } else if constexpr (move < 0) {
-          result.right_shift_carry<-move>();
+        if constexpr (dy > 0) {
+          constexpr int pad = (dy - 1) / lines_per_under + 1;
+          constexpr int shift = ((dy - 1) % lines_per_under + 1) * W + dx;
+          auto temp = data >> (used_bits_per_under - shift);
+          auto [carry, _] = split<num_of_under-pad, pad>(temp);
+          data <<= shift;
+          data |= to_fixed_size(concat(zero<pad>, carry));
+          data &= mask_board();
+        } else if constexpr (dy < 0) {
+          constexpr int pad = (-dy - 1) / lines_per_under + 1;
+          constexpr int shift = ((-dy - 1) % lines_per_under + 1) * W - dx;
+          auto temp = data << (used_bits_per_under - shift);
+          auto [_, carry] = split<pad, num_of_under-pad>(temp);
+          data >>= shift;
+          data |= to_fixed_size(concat(carry, zero<pad>));
+          data &= mask_board();
         }
       }
       if constexpr (check && dx != 0) {
-        result &= mask_move<dx>();
+        data &= mask_move<dx>();
       }
+    }
+    template <coord d, bool check = true>
+    constexpr board_t move() const {
+      board_t result = *this;
+      result.move_<d, check>();
       return result;
     }
     friend constexpr std::string to_string(const board_t &board) {
@@ -186,38 +202,10 @@ namespace reachability {
   private:
     using data_t = std::experimental::fixed_size_simd<under_t, num_of_under>;
     alignas(std::experimental::memory_alignment_v<data_t>) data_t data = {};
-    static constexpr std::experimental::fixed_size_simd<under_t, 1> zero = {};
-    template <std::size_t i>
-    constexpr board_t & right_shift_carry() {
-      auto temp = data << (used_per_under - i);
-      auto [_, carry] = split<1, last>(temp);
-      data >>= i;
-      data |= to_fixed_size(concat(carry, zero));
-      data &= mask_board();
-      return *this;
-    }
-    template <std::size_t i>
-    constexpr board_t & right_shift() {
-      data >>= i;
-      return *this;
-    }
-    template <std::size_t i>
-    constexpr board_t & left_shift_carry() {
-      auto temp = data >> (used_per_under - i);
-      auto [carry, _] = split<last, 1>(temp);
-      data <<= i;
-      data |= to_fixed_size(concat(zero, carry));
-      data &= mask_board();
-      return *this;
-    }
-    template <std::size_t i>
-    constexpr board_t & left_shift() {
-      data <<= i;
-      data &= mask_board();
-      return *this;
-    }
+    template <std::size_t N>
+    static constexpr std::experimental::fixed_size_simd<under_t, N> zero = {};
     template <int dx>
-    static constexpr board_t mask_move() {
+    static constexpr data_t mask_move() {
       board_t mask;
       if constexpr (dx > 0) {
         static_for<dx>([&](auto i) {
@@ -232,9 +220,9 @@ namespace reachability {
           });
         });
       }
-      return ~mask;
+      return (~mask).data;
     }
-    static constexpr auto mask_board() {
+    static constexpr data_t mask_board() {
       board_t ret;
       static_for<last>([&](auto i) {
         ret.data[i] = mask;
