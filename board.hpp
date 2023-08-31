@@ -195,8 +195,7 @@ namespace reachability {
     }
   private:
     using data_t = std::experimental::fixed_size_simd<under_t, num_of_under>;
-    //alignas(std::experimental::memory_alignment_v<data_t>)
-    alignas(64) data_t data = {};
+    alignas(std::experimental::memory_alignment_v<data_t>) data_t data = 0;
     template <std::size_t N>
     static constexpr std::experimental::fixed_size_simd<under_t, N> zero = {};
     template <int dx>
@@ -219,9 +218,7 @@ namespace reachability {
     }
     static constexpr data_t mask_board() {
       board_t ret;
-      static_for<last>([&](auto i) {
-        ret.data[i] = mask;
-      });
+      ret.data = mask;
       ret.data[last] = last_mask;
       return ret.data;
     }
