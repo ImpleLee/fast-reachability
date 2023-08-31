@@ -14,7 +14,18 @@ build/%: %.cpp build
 build:
 	mkdir -p build
 
-.PHONY: clean all build run time
+.PHONY: clean all build run time bench
 all: $(TARGETS)
 clean:
 	rm -rf build
+
+bench:
+	touch $$(git rev-parse HEAD)-bench
+	git stash
+	git cherry-pick bench --no-commit
+	git stash apply
+	make all
+	samply record -o /tmp/profile.json build/main
+	git reset --hard
+	git stash pop
+	rm $$(git rev-parse HEAD)-bench
