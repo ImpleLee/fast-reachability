@@ -14,18 +14,18 @@ namespace reachability {
   template <unsigned W, unsigned H, typename under_t=std::uint64_t>
     requires std::numeric_limits<under_t>::is_integer && std::is_unsigned_v<under_t>
   struct board_t {
-    static constexpr auto under_bits = std::numeric_limits<under_t>::digits;
+    static constexpr int under_bits = std::numeric_limits<under_t>::digits;
     static_assert(under_bits >= W);
-    static constexpr auto width = W;
-    static constexpr auto height = H;
-    static constexpr auto lines_per_under = under_bits / W;
-    static constexpr auto used_bits_per_under = lines_per_under * W;
-    static constexpr auto num_of_under = (H - 1) / lines_per_under + 1;
-    static constexpr auto last = num_of_under - 1;
-    static constexpr auto remaining_per_under = under_bits - used_bits_per_under;
-    static constexpr auto mask = (~under_t(0)) >> remaining_per_under;
-    static constexpr auto remaining_in_last = num_of_under * used_bits_per_under - H * W;
-    static constexpr auto last_mask = mask >> remaining_in_last;
+    static constexpr int width = W;
+    static constexpr int height = H;
+    static constexpr int lines_per_under = under_bits / W;
+    static constexpr int used_bits_per_under = lines_per_under * W;
+    static constexpr int num_of_under = (H - 1) / lines_per_under + 1;
+    static constexpr int last = num_of_under - 1;
+    static constexpr int remaining_per_under = under_bits - used_bits_per_under;
+    static constexpr under_t mask = (~under_t(0)) >> remaining_per_under;
+    static constexpr int remaining_in_last = num_of_under * used_bits_per_under - H * W;
+    static constexpr under_t last_mask = mask >> remaining_in_last;
     constexpr board_t() { }
     constexpr board_t(const std::string &s) {
       for (std::size_t i = 0; i < last; ++i) {
@@ -92,24 +92,18 @@ namespace reachability {
         } else if constexpr (dx < 0) {
           data >>= -dx;
         }
+      } else if constexpr (dy > 0) {
+        constexpr int pad = (dy - 1) / lines_per_under;
+        constexpr int shift = (dy - 1) % lines_per_under + 1;
+        auto not_moved = my_shift<dx, shift>(my_split<pad, true>(data));
+        auto moved = my_shift<dx, shift-lines_per_under>(my_split<pad+1, true>(data));
+        data = (not_moved | moved) & mask_board();
       } else {
-        if constexpr (dy > 0) {
-          constexpr int pad = (dy - 1) / lines_per_under + 1;
-          constexpr int shift = ((dy - 1) % lines_per_under + 1) * W + dx;
-          auto temp = data >> (used_bits_per_under - shift);
-          auto [carry, _] = split<num_of_under-pad, pad>(temp);
-          data <<= shift;
-          data |= to_fixed_size(concat(zero<pad>, carry));
-          data &= mask_board();
-        } else if constexpr (dy < 0) {
-          constexpr int pad = (-dy - 1) / lines_per_under + 1;
-          constexpr int shift = ((-dy - 1) % lines_per_under + 1) * W - dx;
-          auto temp = data << (used_bits_per_under - shift);
-          auto [_, carry] = split<pad, num_of_under-pad>(temp);
-          data >>= shift;
-          data |= to_fixed_size(concat(carry, zero<pad>));
-          data &= mask_board();
-        }
+        constexpr int pad = (-dy - 1) / lines_per_under;
+        constexpr int shift = (-dy - 1) % lines_per_under + 1;
+        auto not_moved = my_shift<dx, -shift>(my_split<pad, false>(data));
+        auto moved = my_shift<dx, lines_per_under-shift>(my_split<pad+1, false>(data));
+        data = (not_moved | moved) & mask_board();
       }
       if constexpr (check && dx != 0) {
         data &= mask_move<dx>();
@@ -229,6 +223,34 @@ namespace reachability {
       });
       ret.data[last] = last_mask;
       return ret.data;
+    }
+    template <int removed, bool from_right>
+    static constexpr data_t my_split(data_t data) {
+      if constexpr (removed == 0) {
+        return data;
+      } else if constexpr (from_right) {
+        auto [carry, _] = split<num_of_under-removed, removed>(data);
+        return to_fixed_size(concat(zero<removed>, carry));
+      } else {
+        auto [_, carry] = split<removed, num_of_under-removed>(data);
+        return to_fixed_size(concat(carry, zero<removed>));
+      }
+    }
+    template <int x_shift, int y_shift>
+    static constexpr data_t my_shift(data_t data) {
+      if constexpr (y_shift == lines_per_under || y_shift == -lines_per_under) {
+        data = data_t(0);
+      } else if constexpr (y_shift < 0) {
+        data >>= -y_shift * W;
+      } else if constexpr (y_shift > 0) {
+        data <<= y_shift * W;
+      }
+      if constexpr (x_shift > 0) {
+        data <<= x_shift;
+      } else if constexpr (x_shift < 0) {
+        data >>= -x_shift;
+      }
+      return data;
     }
   };
 }
