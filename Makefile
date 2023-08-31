@@ -21,11 +21,13 @@ clean:
 
 bench:
 	touch $$(git rev-parse HEAD)-bench
+	git add $$(git rev-parse HEAD)-bench
 	git stash
 	git cherry-pick bench --no-commit
 	git stash apply
 	make all
-	samply record -o /tmp/profile.json build/main
+	samply record --save-only -o build/profile.json build/main
 	git reset --hard
 	git stash pop
+	git restore --staged $$(git rev-parse HEAD)-bench
 	rm $$(git rev-parse HEAD)-bench
