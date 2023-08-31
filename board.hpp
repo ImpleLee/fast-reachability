@@ -23,7 +23,7 @@ namespace reachability {
     static constexpr int num_of_under = (H - 1) / lines_per_under + 1;
     static constexpr int last = num_of_under - 1;
     static constexpr int remaining_per_under = under_bits - used_bits_per_under;
-    static constexpr under_t mask = (~under_t(0)) >> remaining_per_under;
+    static constexpr under_t mask = under_t(~under_t(0)) >> remaining_per_under;
     static constexpr int remaining_in_last = num_of_under * used_bits_per_under - H * W;
     static constexpr under_t last_mask = mask >> remaining_in_last;
     constexpr board_t() { }
@@ -195,7 +195,8 @@ namespace reachability {
     }
   private:
     using data_t = std::experimental::fixed_size_simd<under_t, num_of_under>;
-    alignas(std::experimental::memory_alignment_v<data_t>) data_t data = {};
+    //alignas(std::experimental::memory_alignment_v<data_t>)
+    alignas(64) data_t data = {};
     template <std::size_t N>
     static constexpr std::experimental::fixed_size_simd<under_t, N> zero = {};
     template <int dx>
