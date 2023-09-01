@@ -29,9 +29,9 @@ namespace reachability {
     constexpr board_t() { }
     constexpr board_t(const std::string &s) {
       for (std::size_t i = 0; i < last; ++i) {
-        data[i] = static_cast<under_t>(std::bitset<used_bits_per_under>{s, W * H - (i + 1) * used_bits_per_under, used_bits_per_under, ' ', 'X'}.to_ullong());
+        data[i] = convert_to_under_t(s.substr(W * H - (i + 1) * used_bits_per_under, used_bits_per_under));
       }
-      data[last] = static_cast<under_t>(std::bitset<used_bits_per_under>{s, 0, used_bits_per_under - remaining_in_last, ' ', 'X'}.to_ullong());
+      data[last] = convert_to_under_t(s.substr(0, used_bits_per_under - remaining_in_last));
     }
     template <int x, int y>
     constexpr void set() {
@@ -249,6 +249,15 @@ namespace reachability {
         data >>= -x_shift;
       }
       return data;
+    }
+    static constexpr under_t convert_to_under_t(const std::string &in) {
+      under_t res = 0;
+      for (char c : in) {
+        res *= 2;
+        if (c == 'X')
+          res += 1;
+      }
+      return res;
     }
   };
 }
