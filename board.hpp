@@ -26,64 +26,82 @@ namespace reachability {
     static constexpr under_t mask = under_t(-1) >> remaining_per_under;
     static constexpr int remaining_in_last = num_of_under * used_bits_per_under - H * W;
     static constexpr under_t last_mask = mask >> remaining_in_last;
-    constexpr board_t() { }
+    constexpr board_t() {
+      check_invariant();
+    }
     constexpr board_t(const std::string &s) {
       for (std::size_t i = 0; i < last; ++i) {
         data[i] = convert_to_under_t(s.substr(W * H - (i + 1) * used_bits_per_under, used_bits_per_under));
       }
       data[last] = convert_to_under_t(s.substr(0, used_bits_per_under - remaining_in_last));
+      check_invariant();
     }
     template <int x, int y>
     constexpr void set() {
+      checking_guard _(*this);
       data[y / lines_per_under] |= under_t(1) << ((y % lines_per_under) * W + x);
     }
     template <int x, int y>
     constexpr int get() const {
+      checking_guard _(*this);
       if ((x < 0) || (x >= W) || (y < 0) || (y >= H)) {
         return 2;
       }
       return data[y / lines_per_under] & (under_t(1) << ((y % lines_per_under) * W + x)) ? 1 : 0;
     }
     constexpr bool any() const {
+      checking_guard _(*this);
       return reduce(data, std::bit_or<>{});
     }
     constexpr bool operator!=(const board_t &other) const {
+      checking_guard _(*this), _2(other);
       return (*this ^ other).any();
     }
     constexpr board_t operator~() const {
+      checking_guard _(*this);
       board_t other;
       other.data = mask_board() & ~data;
+      checking_guard _2(other);
       return other;
     }
     constexpr board_t &operator&=(const board_t &rhs) {
+      checking_guard _(*this), _2(rhs);
       data &= rhs.data;
       return *this;
     }
     constexpr board_t operator&(const board_t &rhs) const {
+      checking_guard _(*this), _2(rhs);
       board_t result = *this;
       result &= rhs;
       return result;
     }
     constexpr board_t &operator|=(const board_t &rhs) {
+      checking_guard _(*this), _2(rhs);
       data |= rhs.data;
       return *this;
     }
     constexpr board_t operator|(const board_t &rhs) const {
+      checking_guard _(*this), _2(rhs);
       board_t result = *this;
       result |= rhs;
+      checking_guard _3(result);
       return result;
     }
     constexpr board_t &operator^=(const board_t &rhs) {
+      checking_guard _(*this), _2(rhs);
       data ^= rhs.data;
       return *this;
     }
     constexpr board_t operator^(const board_t &rhs) const {
+      checking_guard _(*this), _2(rhs);
       board_t result = *this;
       result ^= rhs;
+      checking_guard _3(result);
       return result;
     }
     template <coord d, bool check = true>
     constexpr void move_() {
+      checking_guard _(*this);
       constexpr int dx = d[0], dy = d[1];
       if constexpr (dy == 0) {
         if constexpr (dx > 0) {
@@ -111,8 +129,10 @@ namespace reachability {
     }
     template <coord d, bool check = true>
     constexpr board_t move() const {
+      checking_guard _(*this);
       board_t result = *this;
       result.move_<d, check>();
+      checking_guard _2(result);
       return result;
     }
     friend constexpr std::string to_string(const board_t &board) {
@@ -167,6 +187,7 @@ namespace reachability {
       return ret;
     }
     constexpr int clear_full_lines() {
+      checking_guard _(*this);
       auto board = data;
       constexpr int needed = std::numeric_limits<decltype(W)>::digits - std::countl_zero(W) - 1;
       static_for<needed>([&](auto i) {
@@ -259,5 +280,24 @@ namespace reachability {
       }
       return res;
     }
+    constexpr void check_invariant() const {
+      static_for<last>([&](auto i) {
+        if (data[i] & ~mask) {
+          std::unreachable();
+        }
+      });
+      if (data[last] & ~last_mask) {
+        std::unreachable();
+      }
+    }
+    struct checking_guard {
+      const board_t &board;
+      constexpr checking_guard(const board_t &board) : board(board) {
+        board.check_invariant();
+      }
+      constexpr ~checking_guard() {
+        board.check_invariant();
+      }
+    };
   };
 }
