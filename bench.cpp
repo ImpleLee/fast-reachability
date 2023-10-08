@@ -6,6 +6,7 @@
 #include <iostream>
 #include <chrono>
 #include <cassert>
+#include <cmath>
 using namespace std;
 
 bool _ = ios::sync_with_stdio(false);
@@ -110,11 +111,21 @@ int main() {
   const deque<string> board_names = {
     "LEMONTEA TSPIN", "LEMONTEA DT", "LEMONTEA TERRIBLE", "4T"
   };
+  unsigned count = 0;
   for (size_t i = 0; i < board_names.size(); ++i) {
     for (char block : string{"IJLOSTZ"}) {
       auto binary_time = test(boards[i], board_names[i], block);
       binary_sum += binary_time;
+      count++;
     }
   }
-  cout << "TOTAL binary  : " << binary_sum << "ns" << endl;
+  cout << "AVERAGE binary  : " << binary_sum / count << "ns";
+  auto hz = 1e9 / (binary_sum / count);
+  // automatically use k, M, G, T, P, E, Z, Y
+  size_t i = log10(hz) / 3;
+  char suffix[] = " kMGTPEZY";
+  if (i >= sizeof(suffix)) {
+    i = sizeof(suffix) - 1;
+  }
+  cout << " (" << hz / pow(1000, i) << suffix[i] << "Hz)" << endl;
 }
