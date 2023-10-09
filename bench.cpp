@@ -37,22 +37,6 @@ double test(const BOARD &b, const string &name, char block) {
   using namespace reachability::blocks;
   cout << "BOARD " << name << endl;
   cout << " BLOCK " << block << endl;
-  auto binary = binary_bfs<SRS, start, init_rot>(b, block);
-  auto ordinary = ordinary_bfs_without_binary<SRS>(b, block, start, init_rot);
-  if (binary.size() != ordinary.size()) {
-    cout << "  binary.size() != ordinary.size()" << endl;
-    cout << "  binary.size() = " << binary.size() << endl;
-    cout << "  ordinary.size() = " << ordinary.size() << endl;
-  }
-  for (size_t i = 0; i < min(binary.size(), ordinary.size()); ++i) {
-    if (binary[i] != ordinary[i]) {
-      cout << "  binary[" << i << "] != ordinary[" << i << "]" << endl;
-      cout << to_string(binary[i], ordinary[i], b);
-    } else if (print) {
-      cout << "  result[" << i << "]" << endl;
-      cout << to_string(binary[i], b);
-    }
-  }
   auto binary_time = bench([&](){binary_bfs<SRS, start, init_rot>(b, block);}, 1000000);
   cout << "  binary  : " << binary_time << "ns" << endl;
   return binary_time;
