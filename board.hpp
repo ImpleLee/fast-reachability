@@ -2,7 +2,7 @@
 #include "block.hpp"
 #include "utils.hpp"
 #include <limits>
-#include <string>
+#include <string_view>
 #include <bitset>
 #include <array>
 #include <type_traits>
@@ -29,12 +29,19 @@ namespace reachability {
     constexpr board_t() {
       check_invariant();
     }
-    constexpr board_t(const std::string &s) {
+    constexpr board_t(std::string_view s): board_t(convert_to_array(s)) {
+      check_invariant();
+    }
+    constexpr board_t(std::array<under_t, num_of_under> d): data{d.data(), std::experimental::element_aligned} {
+      check_invariant();
+    }
+    static constexpr std::array<under_t, num_of_under> convert_to_array(std::string_view s) {
+      std::array<under_t, num_of_under> data = {};
       for (std::size_t i = 0; i < last; ++i) {
         data[i] = convert_to_under_t(s.substr(W * H - (i + 1) * used_bits_per_under, used_bits_per_under));
       }
       data[last] = convert_to_under_t(s.substr(0, used_bits_per_under - remaining_in_last));
-      check_invariant();
+      return data;
     }
     template <int x, int y>
     constexpr void set() {
@@ -271,7 +278,7 @@ namespace reachability {
       }
       return data;
     }
-    static constexpr under_t convert_to_under_t(const std::string &in) {
+    static constexpr under_t convert_to_under_t(std::string_view in) {
       under_t res = 0;
       for (char c : in) {
         res *= 2;
