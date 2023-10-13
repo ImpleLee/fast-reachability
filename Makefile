@@ -1,3 +1,4 @@
+MAKEFLAGS += rR
 CC = g++
 LIB_FLAGS = -std=c++2b
 OPT_FLAGS = -O3 -march=native -flto=auto
