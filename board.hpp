@@ -12,10 +12,12 @@
 
 namespace reachability {
   template <unsigned W, unsigned H, typename under_t=std::uint64_t>
-    requires std::numeric_limits<under_t>::is_integer && std::is_unsigned_v<under_t>
+    requires
+      std::numeric_limits<under_t>::is_integer
+      && std::is_unsigned_v<under_t>
+      && (std::numeric_limits<under_t>::digits >= W)
   struct board_t {
     static constexpr int under_bits = std::numeric_limits<under_t>::digits;
-    static_assert(under_bits >= W);
     static constexpr int width = W;
     static constexpr int height = H;
     static constexpr int lines_per_under = under_bits / W;
