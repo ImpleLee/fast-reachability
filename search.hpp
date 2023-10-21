@@ -13,7 +13,7 @@ namespace reachability::search {
   template <std::array mino, typename board_t>
   constexpr board_t usable_positions(const board_t &data) {
     board_t positions = ~board_t();
-    static_for<std::tuple_size_v<decltype(mino)>>([&](auto i) {
+    static_for<mino.size()>([&](auto i) {
       positions &= (~data).template move<-mino[i]>();
     });
     return positions;
@@ -23,9 +23,9 @@ namespace reachability::search {
     return usable & ~usable.template move<coord{0, 1}>();
   }
   template <std::array kick, typename board_t>
-  constexpr std::array<board_t, std::tuple_size_v<decltype(kick)>>
+  constexpr std::array<board_t, kick.size()>
       kick_positions(const board_t &start, const board_t &end) {
-    constexpr std::size_t N = std::tuple_size_v<decltype(kick)>;
+    constexpr std::size_t N = kick.size();
     std::array<board_t, N> positions;
     static_for<N>([&](auto i) {
       positions[i] = start & end.template move<-kick[i]>();
