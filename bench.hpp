@@ -3,6 +3,7 @@
 #include <initializer_list>
 #include <string_view>
 #include <chrono>
+#include "board.hpp"
 
 constexpr int WIDTH = 10, HEIGHT = 24;
 using BOARD = reachability::board_t<WIDTH, HEIGHT>;
