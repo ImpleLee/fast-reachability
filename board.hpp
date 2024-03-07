@@ -60,11 +60,11 @@ namespace reachability {
     }
     constexpr bool any() const {
       checking_guard _(*this);
-      return reduce(data, std::bit_or<>{});
+      return *this != board_t{};
     }
     constexpr bool operator!=(const board_t &other) const {
       checking_guard _(*this), _2(other);
-      return (*this ^ other).any();
+      return any_of(data != other.data);
     }
     constexpr board_t operator~() const {
       checking_guard _(*this);
