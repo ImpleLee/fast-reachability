@@ -1,6 +1,7 @@
 #pragma once
 #include "block.hpp"
 #include "utils.hpp"
+#include <emmintrin.h>
 #include <limits>
 #include <string_view>
 #include <bitset>
@@ -8,9 +9,15 @@
 #include <type_traits>
 #include <cstdint>
 #include <bit>
-#include <experimental/simd>
+#include "immintrin.h"
 
 namespace reachability {
+  template <int N> struct my_int;
+  template <> struct my_int<1> { using type = std::uint8_t; };
+  template <> struct my_int<2> { using type = std::uint16_t; };
+  template <> struct my_int<4> { using type = std::uint32_t; };
+  template <> struct my_int<8> { using type = std::uint64_t; };
+
   template <unsigned W, unsigned H, typename under_t=std::uint64_t>
     requires
       std::numeric_limits<under_t>::is_integer
@@ -22,20 +29,18 @@ namespace reachability {
     static constexpr int height = H;
     static constexpr int lines_per_under = under_bits / W;
     static constexpr int used_bits_per_under = lines_per_under * W;
-    static constexpr int num_of_under = (H - 1) / lines_per_under + 1;
+    static constexpr int num_of_under = std::bit_ceil((H - 1) / lines_per_under + 1);
+    static constexpr int size = sizeof(under_t) * num_of_under;
     static constexpr int last = num_of_under - 1;
     static constexpr int remaining_per_under = under_bits - used_bits_per_under;
     static constexpr under_t mask = under_t(-1) >> remaining_per_under;
     static constexpr int remaining_in_last = num_of_under * used_bits_per_under - H * W;
     static constexpr under_t last_mask = mask >> remaining_in_last;
     constexpr board_t() {
-      check_invariant();
     }
     constexpr board_t(std::string_view s): board_t(convert_to_array(s)) {
-      check_invariant();
     }
-    constexpr board_t(std::array<under_t, num_of_under> d): data{d.data(), std::experimental::element_aligned} {
-      check_invariant();
+    constexpr board_t(std::array<under_t, num_of_under> d): data{[d]<std::size_t... I>(std::index_sequence<I...>) {return data_t{d[I]...};}(std::make_index_sequence<num_of_under>{})} {
     }
     static constexpr std::array<under_t, num_of_under> convert_to_array(std::string_view s) {
       std::array<under_t, num_of_under> data = {};
@@ -47,70 +52,64 @@ namespace reachability {
     }
     template <int x, int y>
     constexpr void set() {
-      checking_guard _(*this);
       data[y / lines_per_under] |= under_t(1) << ((y % lines_per_under) * W + x);
     }
     template <int x, int y>
     constexpr int get() const {
-      checking_guard _(*this);
       if ((x < 0) || (x >= W) || (y < 0) || (y >= H)) {
         return 2;
       }
       return data[y / lines_per_under] & (under_t(1) << ((y % lines_per_under) * W + x)) ? 1 : 0;
     }
     constexpr bool any() const {
-      checking_guard _(*this);
       return *this != board_t{};
     }
     constexpr bool operator!=(const board_t &other) const {
-      checking_guard _(*this), _2(other);
-      return any_of(data != other.data);
+      auto ret = data != other.data;
+      if constexpr (size <= 8) {
+        return *(typename my_int<size>::type *)&ret;
+      } else if constexpr (size == 16) {
+        return _mm_movemask_epi8(ret);
+      } else if constexpr (size == 32) {
+        return _mm256_movemask_epi8(ret);
+      } else {
+        std::unreachable();
+      }
     }
     constexpr board_t operator~() const {
-      checking_guard _(*this);
       board_t other;
       other.data = mask_board() & ~data;
-      checking_guard _2(other);
       return other;
     }
     constexpr board_t &operator&=(const board_t &rhs) {
-      checking_guard _(*this), _2(rhs);
       data &= rhs.data;
       return *this;
     }
     constexpr board_t operator&(const board_t &rhs) const {
-      checking_guard _(*this), _2(rhs);
       board_t result = *this;
       result &= rhs;
       return result;
     }
     constexpr board_t &operator|=(const board_t &rhs) {
-      checking_guard _(*this), _2(rhs);
       data |= rhs.data;
       return *this;
     }
     constexpr board_t operator|(const board_t &rhs) const {
-      checking_guard _(*this), _2(rhs);
       board_t result = *this;
       result |= rhs;
-      checking_guard _3(result);
       return result;
     }
     constexpr board_t &operator^=(const board_t &rhs) {
-      checking_guard _(*this), _2(rhs);
       data ^= rhs.data;
       return *this;
     }
     constexpr board_t operator^(const board_t &rhs) const {
-      checking_guard _(*this), _2(rhs);
       board_t result = *this;
       result ^= rhs;
-      checking_guard _3(result);
       return result;
     }
     template <coord d, bool check = true>
     constexpr void move_() {
-      checking_guard _(*this);
       constexpr int dx = d[0], dy = d[1];
       if constexpr (dy == 0) {
         if constexpr (dx > 0) {
@@ -138,10 +137,8 @@ namespace reachability {
     }
     template <coord d, bool check = true>
     constexpr board_t move() const {
-      checking_guard _(*this);
       board_t result = *this;
       result.move_<d, check>();
-      checking_guard _2(result);
       return result;
     }
     friend constexpr std::string to_string(const board_t &board) {
@@ -196,7 +193,6 @@ namespace reachability {
       return ret;
     }
     constexpr int clear_full_lines() {
-      checking_guard _(*this);
       auto board = data;
       constexpr int needed = std::numeric_limits<decltype(W)>::digits - std::countl_zero(W) - 1;
       static_for<needed>([&](auto i) {
@@ -224,10 +220,8 @@ namespace reachability {
       return lines;
     }
   private:
-    using data_t = std::experimental::fixed_size_simd<under_t, num_of_under>;
-    alignas(std::experimental::memory_alignment_v<data_t>) data_t data = 0;
-    template <std::size_t N>
-    static constexpr std::experimental::fixed_size_simd<under_t, N> zero = {};
+    typedef under_t data_t [[gnu::vector_size(size)]];
+    data_t data = {};
     template <int dx>
     static constexpr data_t mask_move() {
       board_t mask;
@@ -247,21 +241,22 @@ namespace reachability {
       return (~mask).data;
     }
     static constexpr data_t mask_board() {
-      board_t ret;
-      ret.data = mask;
-      ret.data[last] = last_mask;
-      return ret.data;
+      return []<std::size_t... I>(std::index_sequence<I...>) {
+        return data_t{(I < last ? mask : last_mask)...};
+      }(std::make_index_sequence<num_of_under>{});
     }
     template <int removed, bool from_right>
     static constexpr data_t my_split(data_t data) {
       if constexpr (removed == 0) {
         return data;
       } else if constexpr (from_right) {
-        auto [carry, _] = split<num_of_under-removed, removed>(data);
-        return to_fixed_size(concat(zero<removed>, carry));
+        return [data]<std::size_t... I>(std::index_sequence<I...>) {
+          return __builtin_shufflevector(data, data_t{}, (I >= removed ? I - removed : num_of_under)...);
+        }(std::make_index_sequence<num_of_under>{});
       } else {
-        auto [_, carry] = split<removed, num_of_under-removed>(data);
-        return to_fixed_size(concat(carry, zero<removed>));
+        return [data]<std::size_t... I>(std::index_sequence<I...>) {
+          return __builtin_shufflevector(data, data_t{}, (I < num_of_under - removed ? I + removed : num_of_under)...);
+        }(std::make_index_sequence<num_of_under>{});
       }
     }
     template <int x_shift, int y_shift>
@@ -289,24 +284,5 @@ namespace reachability {
       }
       return res;
     }
-    constexpr void check_invariant() const {
-      static_for<last>([&](auto i) {
-        if (data[i] & ~mask) {
-          std::unreachable();
-        }
-      });
-      if (data[last] & ~last_mask) {
-        std::unreachable();
-      }
-    }
-    struct checking_guard {
-      const board_t &board;
-      constexpr checking_guard(const board_t &board) : board(board) {
-        board.check_invariant();
-      }
-      constexpr ~checking_guard() {
-        board.check_invariant();
-      }
-    };
   };
 }
