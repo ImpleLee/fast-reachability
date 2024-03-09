@@ -1,6 +1,6 @@
 MAKEFLAGS += rR
 CC = g++
-LIB_FLAGS = -std=c++2b
+LIB_FLAGS = -std=c++2b -flax-vector-conversions
 OPT_FLAGS = -O3 -march=native -flto=auto
 EXTRA_FLAGS =
 # use a user-provided flag to disable the gvn-memdep pass
