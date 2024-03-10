@@ -1,7 +1,6 @@
 #pragma once
 #include "block.hpp"
 #include "utils.hpp"
-#include <emmintrin.h>
 #include <limits>
 #include <string_view>
 #include <bitset>
@@ -70,10 +69,9 @@ namespace reachability {
         return *(typename my_int<size>::type *)&ret;
       } else if constexpr (size == 16) {
         return _mm_movemask_epi8(ret);
-      } else if constexpr (size == 32) {
-        return _mm256_movemask_epi8(ret);
       } else {
-        std::unreachable();
+        static_assert(size == 32);
+        return _mm256_movemask_epi8(ret);
       }
     }
     constexpr board_t operator~() const {
@@ -251,11 +249,11 @@ namespace reachability {
         return data;
       } else if constexpr (from_right) {
         return [data]<std::size_t... I>(std::index_sequence<I...>) {
-          return __builtin_shufflevector(data, data_t{}, (I >= removed ? I - removed : num_of_under)...);
+          return __builtin_shuffle(data, data_t{}, data_t{(I >= removed ? I - removed : num_of_under)...});
         }(std::make_index_sequence<num_of_under>{});
       } else {
         return [data]<std::size_t... I>(std::index_sequence<I...>) {
-          return __builtin_shufflevector(data, data_t{}, (I < num_of_under - removed ? I + removed : num_of_under)...);
+          return __builtin_shuffle(data, data_t{}, data_t{(I < num_of_under - removed ? I + removed : num_of_under)...});
         }(std::make_index_sequence<num_of_under>{});
       }
     }

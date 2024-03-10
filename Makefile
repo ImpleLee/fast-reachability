@@ -1,6 +1,6 @@
 MAKEFLAGS += rR
 CC = g++
-LIB_FLAGS = -std=c++2b -flax-vector-conversions
+LIB_FLAGS = -std=c++2a -flax-vector-conversions
 OPT_FLAGS = -O3 -march=skylake -fno-lto
 EXTRA_FLAGS =
 # use a user-provided flag to disable the gvn-memdep pass
