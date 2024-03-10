@@ -1,7 +1,7 @@
 MAKEFLAGS += rR
 CC = g++
 LIB_FLAGS = -std=c++2b -flax-vector-conversions
-OPT_FLAGS = -O3 -march=native -flto=auto
+OPT_FLAGS = -O3 -march=skylake
 EXTRA_FLAGS =
 # use a user-provided flag to disable the gvn-memdep pass
 CLANG_FLAGS = -mllvm --enable-gvn-memdep=false
@@ -10,7 +10,7 @@ ifeq ($(GVN_MEMDEP), 0)
 		OPT_FLAGS += $(CLANG_FLAGS)
 	endif
 endif
-DEBUG_FLAGS = -g -gz -Wall -Wextra -Werror=shift-count-negative -Werror=shift-count-overflow
+DEBUG_FLAGS =# -g -gz -Wall -Wextra -Werror=shift-count-negative -Werror=shift-count-overflow
 CXXFLAGS = $(LIB_FLAGS) $(OPT_FLAGS) $(DEBUG_FLAGS) $(EXTRA_FLAGS)
 TARGETS := $(patsubst %.cpp, build/%, $(wildcard *.cpp))
 
