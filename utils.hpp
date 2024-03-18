@@ -1,6 +1,7 @@
 #pragma once
 #include <type_traits>
 #include <utility>
+#include <array>
 namespace reachability {
   template<typename F, std::size_t... S>
   [[gnu::always_inline]]
@@ -16,6 +17,16 @@ namespace reachability {
   [[gnu::always_inline]]
   constexpr void static_for(F&& function) {
       static_for(std::forward<F>(function), std::make_index_sequence<iterations>());
+  }
+
+  template<std::size_t iterations>
+  [[gnu::always_inline]]
+  constexpr auto array_of(auto &&function) {
+    if constexpr (iterations == 0) {
+      return 0;
+    } else return [function=std::move(function)]<std::size_t... S>(std::index_sequence<S...>) {
+      return std::array{function(std::integral_constant<std::size_t, S>{})...};
+    }(std::make_index_sequence<iterations>());
   }
 
   template <typename T, std::size_t N>

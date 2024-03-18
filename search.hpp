@@ -26,14 +26,14 @@ namespace reachability::search {
   constexpr std::array<board_t, kick.size()>
       kick_positions(const board_t &start, const board_t &end) {
     constexpr std::size_t N = kick.size();
-    std::array<board_t, N> positions;
-    static_for<N>([&](auto i) {
-      positions[i] = start & end.template move<-kick[i]>();
+    auto positions = array_of<N>([=](auto i) {
+      return start & end.template move<-kick[i]>();
     });
     board_t temp = positions[0];
     static_for<N-1>([&](auto i) {
-      positions[i + 1] &= ~temp;
+      board_t old_temp = temp;
       temp |= positions[i + 1];
+      positions[i + 1] &= ~old_temp;
     });
     return positions;
   }
@@ -43,17 +43,15 @@ namespace reachability::search {
     constexpr int rotations = block.ROTATIONS;
     constexpr int kicks = block.KICK_PER_ROTATION;
     constexpr int shapes = block.SHAPES;
-    board_t usable[shapes];
-    std::array<board_t, kicks> kicks2[orientations][rotations];
-    static_for<shapes>([&](auto i) {
-      usable[i] = usable_positions<block.minos[i]>(data);
+    const auto usable = array_of<shapes>([=](auto i) {
+      return usable_positions<block.minos[i]>(data);
     });
-    static_for<orientations>([&](auto i) {
+    const auto kicks2 = array_of<orientations>([=](auto i) {
       constexpr auto index = block.mino_index[i];
-      static_for<rotations>([&](auto j) {
+      return array_of<rotations>([=](auto j) {
         constexpr auto target = block.rotation_target(i, j);
         constexpr auto index2 = block.mino_index[target];
-        kicks2[i][j] = kick_positions<block.kicks[i][j]>(usable[index], usable[index2]);
+        return kick_positions<block.kicks[i][j]>(usable[index], usable[index2]);
       });
     });
     constexpr std::array<coord, 3> MOVES = {{{-1, 0}, {1, 0}, {0, -1}}};
@@ -96,7 +94,7 @@ namespace reachability::search {
           cache[target] |= to;
           if ((to & ~old_cache).any()) {
             need_visit[target] = true;
-            if (target < i)
+            if constexpr (target < i)
               updated = true;
           }
         });
