@@ -79,10 +79,10 @@ namespace reachability::search {
           static_for<MOVES.size()>([&](auto j) {
             result |= cache[i].template move<MOVES[j]>();
           });
-          result &= usable[index] & ~cache[i];
-          if (result.any()) [[likely]] {
-            cache[i] |= result;
-          } else {
+          result &= usable[index];
+          board_t old_cache = cache[i];
+          cache[i] |= result;
+          if (!(result & ~old_cache).any()) [[unlikely]] {
             break;
           }
         }
@@ -92,9 +92,9 @@ namespace reachability::search {
           static_for<kicks>([&](auto k){
             to |= (cache[i] & kicks2[i][j][k]).template move<block.kicks[i][j][k], false>();
           });
-          board_t det = to & ~cache[target];
-          if (det.any()) {
-            cache[target] |= to;
+          board_t old_cache = cache[target];
+          cache[target] |= to;
+          if ((to & ~old_cache).any()) {
             need_visit[target] = true;
             if (target < i)
               updated = true;
