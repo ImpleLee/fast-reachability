@@ -80,9 +80,9 @@ namespace reachability::search {
             result |= cache[i].template move<MOVES[j]>();
           });
           result &= usable[index];
-          board_t old_cache = cache[i];
-          cache[i] |= result;
-          if (!(result & ~old_cache).any()) [[unlikely]] {
+          if ((result & ~cache[i]).any()) [[likely]] {
+            cache[i] |= result;
+          } else {
             break;
           }
         }
