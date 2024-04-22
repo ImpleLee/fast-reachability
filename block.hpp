@@ -151,7 +151,7 @@ namespace reachability::blocks {
   };
 
   struct SRS { // used as a namespace but usable as a template parameter
-    static inline constexpr pure_kick<4, 2, 5> common_kick = {{{
+    static constexpr pure_kick<4, 2, 5> common_kick = {{{
       {{ // 0
         {{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}}},  // -> R
         {{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}}}      // -> L
@@ -169,7 +169,7 @@ namespace reachability::blocks {
         {{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}}    // -> 2
       }}
     }}};
-    static inline constexpr pure_kick<4, 2, 5> I_kick = {{{
+    static constexpr pure_kick<4, 2, 5> I_kick = {{{
       {{
         {{{1, 0}, {-1, 0}, {2, 0}, {-1, -1}, {2, 2}}},
         {{{0, -1}, {-1, -1}, {2, -1}, {-1, 1}, {2, -2}}},
@@ -187,23 +187,23 @@ namespace reachability::blocks {
         {{{1, 0}, {-1, 0}, {2, 0}, {-1, -1}, {2, 2}}},
       }}
     }}};
-    static inline constexpr auto T = convert(blocks::T) + common_kick;
-    static inline constexpr auto Z = convert<2, 4, 4>(blocks::Z, {{0, 1, 0, 1}}, {{
+    static constexpr auto T = convert(blocks::T) + common_kick;
+    static constexpr auto Z = convert<2, 4, 4>(blocks::Z, {{0, 1, 0, 1}}, {{
       {{0, 0}},
       {{1, 0}},
       {{0, -1}},
       {{0, 0}}
     }}) + common_kick;
-    static inline constexpr auto S = convert<2, 4, 4>(blocks::S, {{0, 1, 0, 1}}, {{
+    static constexpr auto S = convert<2, 4, 4>(blocks::S, {{0, 1, 0, 1}}, {{
       {{0, 0}},
       {{1, 0}},
       {{0, -1}},
       {{0, 0}}
     }}) + common_kick;
-    static inline constexpr auto J = convert(blocks::J) + common_kick;
-    static inline constexpr auto L = convert(blocks::L) + common_kick;
-    static inline constexpr auto O = convert(blocks::O) + no_rotation;
-    static inline constexpr auto I = convert<2, 4, 4>(blocks::I, {{0, 1, 0, 1}}, {{
+    static constexpr auto J = convert(blocks::J) + common_kick;
+    static constexpr auto L = convert(blocks::L) + common_kick;
+    static constexpr auto O = convert(blocks::O) + no_rotation;
+    static constexpr auto I = convert<2, 4, 4>(blocks::I, {{0, 1, 0, 1}}, {{
       {{0, 0}},
       {{0, -1}},
       {{-1, 0}},
