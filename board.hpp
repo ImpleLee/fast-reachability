@@ -3,7 +3,6 @@
 #include "utils.hpp"
 #include <limits>
 #include <string_view>
-#include <bitset>
 #include <array>
 #include <type_traits>
 #include <cstdint>
