@@ -62,7 +62,7 @@ namespace reachability {
       checking_guard _(*this);
       return *this != board_t{};
     }
-    constexpr bool operator!=(const board_t &other) const {
+    constexpr bool operator!=(board_t other) const {
       checking_guard _(*this), _2(other);
       return any_of(data != other.data);
     }
@@ -73,35 +73,35 @@ namespace reachability {
       checking_guard _2(other);
       return other;
     }
-    constexpr board_t &operator&=(const board_t &rhs) {
+    constexpr board_t &operator&=(board_t rhs) {
       checking_guard _(*this), _2(rhs);
       data &= rhs.data;
       return *this;
     }
-    constexpr board_t operator&(const board_t &rhs) const {
+    constexpr board_t operator&(board_t rhs) const {
       checking_guard _(*this), _2(rhs);
       board_t result = *this;
       result &= rhs;
       return result;
     }
-    constexpr board_t &operator|=(const board_t &rhs) {
+    constexpr board_t &operator|=(board_t rhs) {
       checking_guard _(*this), _2(rhs);
       data |= rhs.data;
       return *this;
     }
-    constexpr board_t operator|(const board_t &rhs) const {
+    constexpr board_t operator|(board_t rhs) const {
       checking_guard _(*this), _2(rhs);
       board_t result = *this;
       result |= rhs;
       checking_guard _3(result);
       return result;
     }
-    constexpr board_t &operator^=(const board_t &rhs) {
+    constexpr board_t &operator^=(board_t rhs) {
       checking_guard _(*this), _2(rhs);
       data ^= rhs.data;
       return *this;
     }
-    constexpr board_t operator^(const board_t &rhs) const {
+    constexpr board_t operator^(board_t rhs) const {
       checking_guard _(*this), _2(rhs);
       board_t result = *this;
       result ^= rhs;
@@ -144,7 +144,7 @@ namespace reachability {
       checking_guard _2(result);
       return result;
     }
-    friend constexpr std::string to_string(const board_t &board) {
+    friend constexpr std::string to_string(board_t board) {
       std::string ret;
       static_for<H>([&](auto y) {
         std::string this_ret;
@@ -156,7 +156,7 @@ namespace reachability {
       });
       return ret;
     }
-    friend constexpr std::string to_string(const board_t &board1, const board_t &board2) {
+    friend constexpr std::string to_string(board_t board1, board_t board2) {
       std::string ret;
       static_for<H>([&](auto y) {
         std::string this_ret;
@@ -178,7 +178,7 @@ namespace reachability {
       });
       return ret;
     }
-    friend constexpr std::string to_string(const board_t &board1, const board_t &board2, const board_t &board_3) {
+    friend constexpr std::string to_string(board_t board1, board_t board2, board_t board_3) {
       std::string ret;
       static_for<H>([&](auto y) {
         std::string this_ret;
@@ -208,7 +208,7 @@ namespace reachability {
       temp.template right_shift<W - (1 << needed)>();
       board &= temp;
       int lines = 0;
-      const auto remove_range = [](const board_t &data, unsigned start, unsigned end) {
+      const auto remove_range = [](board_t data, unsigned start, unsigned end) {
         board_t below = data << (H * W - start);
         below >>= (H * W - start);
         board_t above = data >> end;
@@ -224,10 +224,12 @@ namespace reachability {
       return lines;
     }
   private:
-    using data_t = std::experimental::fixed_size_simd<under_t, num_of_under>;
+    template <std::size_t N>
+    using simd_of = std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, N>>;
+    using data_t = simd_of<num_of_under>;
     alignas(std::experimental::memory_alignment_v<data_t>) data_t data = 0;
     template <std::size_t N>
-    static constexpr std::experimental::fixed_size_simd<under_t, N> zero = {};
+    static constexpr simd_of<N> zero = {};
     template <int dx>
     static constexpr data_t mask_move() {
       board_t mask;
@@ -258,10 +260,10 @@ namespace reachability {
         return data;
       } else if constexpr (from_right) {
         auto [carry, _] = split<num_of_under-removed, removed>(data);
-        return to_fixed_size(concat(zero<removed>, carry));
+        return concat(zero<removed>, carry);
       } else {
         auto [_, carry] = split<removed, num_of_under-removed>(data);
-        return to_fixed_size(concat(carry, zero<removed>));
+        return concat(carry, zero<removed>);
       }
     }
     template <int x_shift, int y_shift>
@@ -300,8 +302,8 @@ namespace reachability {
       }
     }
     struct checking_guard {
-      const board_t &board;
-      constexpr checking_guard(const board_t &board) : board(board) {
+      board_t board;
+      constexpr checking_guard(board_t board) : board(board) {
         board.check_invariant();
       }
       constexpr ~checking_guard() {

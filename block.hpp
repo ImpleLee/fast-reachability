@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <utility>
 
 namespace reachability {
   using coord = std::array<int, 2>;
@@ -214,15 +215,16 @@ namespace reachability::blocks {
 
   template <>
   inline constexpr auto call_with_block<SRS> =
-      []<typename F>(char ch, F f) {
+      [] [[gnu::always_inline]] (char ch, auto f) static {
     switch (ch) {
-      case 'T': f.template operator()<SRS::T>(); return;
-      case 'Z': f.template operator()<SRS::Z>(); return;
-      case 'S': f.template operator()<SRS::S>(); return;
-      case 'J': f.template operator()<SRS::J>(); return;
-      case 'L': f.template operator()<SRS::L>(); return;
-      case 'O': f.template operator()<SRS::O>(); return;
-      case 'I': f.template operator()<SRS::I>(); return;
+      case 'T': return f.template operator()<SRS::T>();
+      case 'Z': return f.template operator()<SRS::Z>();
+      case 'S': return f.template operator()<SRS::S>();
+      case 'J': return f.template operator()<SRS::J>();
+      case 'L': return f.template operator()<SRS::L>();
+      case 'O': return f.template operator()<SRS::O>();
+      case 'I': return f.template operator()<SRS::I>();
+      default: std::unreachable();
     }
   };
 }
