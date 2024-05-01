@@ -215,7 +215,7 @@ namespace reachability::blocks {
 
   template <>
   inline constexpr auto call_with_block<SRS> =
-      [] [[gnu::always_inline]] (char ch, auto f) static {
+      [] [[gnu::always_inline]] (char ch, auto f) {
     switch (ch) {
       case 'T': return f.template operator()<SRS::T>();
       case 'Z': return f.template operator()<SRS::Z>();
