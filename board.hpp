@@ -248,22 +248,24 @@ namespace reachability {
       return (~mask).data;
     }
     static constexpr data_t mask_board() {
-      board_t ret;
-      ret.data = mask;
-      ret.data[last] = last_mask;
-      return ret.data;
+      return data_t{[](auto i) {
+        if constexpr (i == last) {
+          return last_mask;
+        } else {
+          return mask;
+        }
+      }};
     }
     template <int removed, bool from_right>
     static constexpr data_t my_split(data_t data) {
-      if constexpr (removed == 0) {
-        return data;
-      } else if constexpr (from_right) {
-        auto [carry, _] = split<num_of_under-removed, removed>(data);
-        return concat(zero<removed>, carry);
-      } else {
-        auto [_, carry] = split<removed, num_of_under-removed>(data);
-        return concat(carry, zero<removed>);
-      }
+      return data_t([=][[gnu::always_inline]](auto i) {
+        constexpr size_t index = from_right ? i - removed : i + removed;
+        if constexpr (index >= num_of_under) {
+          return 0;
+        } else {
+          return data[index];
+        }
+      });
     }
     template <int x_shift, int y_shift>
     static constexpr data_t my_shift(data_t data) {
@@ -291,21 +293,12 @@ namespace reachability {
       return res;
     }
     constexpr void check_invariant() const {
-      static_for<last>([&](auto i) {
-        if (data[i] & ~mask) {
-          std::unreachable();
-        }
-      });
-      if (data[last] & ~last_mask) {
+      if (any_of((data & ~mask_board()) != zero<num_of_under>))
         std::unreachable();
-      }
     }
     struct checking_guard {
       board_t board;
       constexpr checking_guard(board_t board) : board(board) {
-        board.check_invariant();
-      }
-      constexpr ~checking_guard() {
         board.check_invariant();
       }
     };
