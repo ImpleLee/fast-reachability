@@ -145,9 +145,9 @@ namespace reachability {
     }
     friend constexpr std::string to_string(board_t board) {
       std::string ret;
-      static_for<H>([&](auto y) {
+      static_for<H>([&][[gnu::always_inline]](auto y) {
         std::string this_ret;
-        static_for<W>([&](auto x) {
+        static_for<W>([&][[gnu::always_inline]](auto x) {
           this_ret += board.template get<x, y>() ? "[]" : "  ";
         });
         this_ret += '\n';
@@ -157,9 +157,9 @@ namespace reachability {
     }
     friend constexpr std::string to_string(board_t board1, board_t board2) {
       std::string ret;
-      static_for<H>([&](auto y) {
+      static_for<H>([&][[gnu::always_inline]](auto y) {
         std::string this_ret;
-        static_for<W>([&](auto x) {
+        static_for<W>([&][[gnu::always_inline]](auto x) {
           bool b1 = board1.template get<x, y>();
           bool b2 = board2.template get<x, y>();
           if (b1 && b2) {
@@ -179,9 +179,9 @@ namespace reachability {
     }
     friend constexpr std::string to_string(board_t board1, board_t board2, board_t board_3) {
       std::string ret;
-      static_for<H>([&](auto y) {
+      static_for<H>([&][[gnu::always_inline]](auto y) {
         std::string this_ret;
-        static_for<W>([&](auto x) {
+        static_for<W>([&][[gnu::always_inline]](auto x) {
           bool tested[2] = {bool(board1.template get<x, y>()), bool(board2.template get<x, y>())};
           bool b3 = board_3.template get<x, y>();
           std::string symbols = "  <>[]%%";
@@ -198,7 +198,7 @@ namespace reachability {
       checking_guard _(*this);
       auto board = data;
       constexpr int needed = std::numeric_limits<decltype(W)>::digits - std::countl_zero(W) - 1;
-      static_for<needed>([&](auto i) {
+      static_for<needed>([&][[gnu::always_inline]](auto i) {
         auto temp = board;
         temp.template right_shift<1 << i>();
         board &= temp;
@@ -214,7 +214,7 @@ namespace reachability {
         above <<= start;
         return below | above;
       };
-      static_for<H>([&](auto y){
+      static_for<H>([&][[gnu::always_inline]](auto y){
         if (board.template get<0, y>()) {
           data = remove_range(data, (y - lines) * W, (y - lines + 1) * W);
           ++lines;
@@ -233,14 +233,14 @@ namespace reachability {
     static constexpr data_t mask_move() {
       board_t mask;
       if constexpr (dx > 0) {
-        static_for<dx>([&](auto i) {
-          static_for<H>([&](auto j) {
+        static_for<dx>([&][[gnu::always_inline]](auto i) {
+          static_for<H>([&][[gnu::always_inline]](auto j) {
             mask.template set<i, j>();
           });
         });
       } else if constexpr (dx < 0) {
-        static_for<-dx>([&](auto i) {
-          static_for<H>([&](auto j) {
+        static_for<-dx>([&][[gnu::always_inline]](auto i) {
+          static_for<H>([&][[gnu::always_inline]](auto j) {
             mask.template set<W - 1 - i, j>();
           });
         });

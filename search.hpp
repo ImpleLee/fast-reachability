@@ -11,7 +11,7 @@ namespace reachability::search {
   template <std::array mino, typename board_t>
   constexpr board_t usable_positions(board_t data) {
     board_t positions = ~board_t();
-    static_for<mino.size()>([&](auto i) {
+    static_for<mino.size()>([&][[gnu::always_inline]](auto i) {
       positions &= (~data).template move<-mino[i]>();
     });
     return positions;
@@ -25,11 +25,11 @@ namespace reachability::search {
       kick_positions(board_t start, board_t end) {
     constexpr std::size_t N = kick.size();
     std::array<board_t, N> positions;
-    static_for<N>([&](auto i) {
+    static_for<N>([&][[gnu::always_inline]](auto i) {
       positions[i] = start & end.template move<-kick[i]>();
     });
     board_t temp = positions[0];
-    static_for<N-1>([&](auto i) {
+    static_for<N-1>([&][[gnu::always_inline]](auto i) {
       positions[i + 1] &= ~temp;
       temp |= positions[i + 1];
     });
@@ -43,12 +43,12 @@ namespace reachability::search {
     constexpr int shapes = block.SHAPES;
     board_t usable[shapes];
     std::array<board_t, kicks> kicks2[orientations][rotations];
-    static_for<shapes>([&](auto i) {
+    static_for<shapes>([&][[gnu::always_inline]](auto i) {
       usable[i] = usable_positions<block.minos[i]>(data);
     });
-    static_for<orientations>([&](auto i) {
+    static_for<orientations>([&][[gnu::always_inline]](auto i) {
       constexpr auto index = block.mino_index[i];
-      static_for<rotations>([&](auto j) {
+      static_for<rotations>([&][[gnu::always_inline]](auto j) {
         constexpr auto target = block.rotation_target(i, j);
         constexpr auto index2 = block.mino_index[target];
         kicks2[i][j] = kick_positions<block.kicks[i][j]>(usable[index], usable[index2]);
@@ -66,7 +66,7 @@ namespace reachability::search {
     cache[init_rot].template set<start2[0], start2[1]>();
     for (bool updated = true; updated;) [[unlikely]] {
       updated = false;
-      static_for<orientations>([&](auto i){
+      static_for<orientations>([&][[gnu::always_inline]](auto i){
         if (!need_visit[i]) {
           return;
         }
@@ -74,7 +74,7 @@ namespace reachability::search {
         need_visit[i] = false;
         while (true) {
           board_t result;
-          static_for<MOVES.size()>([&](auto j) {
+          static_for<MOVES.size()>([&][[gnu::always_inline]](auto j) {
             result |= cache[i].template move<MOVES[j]>();
           });
           result &= usable[index];
@@ -84,10 +84,10 @@ namespace reachability::search {
             break;
           }
         }
-        static_for<rotations>([&](auto j){
+        static_for<rotations>([&][[gnu::always_inline]](auto j){
           constexpr int target = block.rotation_target(i, j);
           board_t to;
-          static_for<kicks>([&](auto k){
+          static_for<kicks>([&][[gnu::always_inline]](auto k){
             to |= (cache[i] & kicks2[i][j][k]).template move<block.kicks[i][j][k], false>();
           });
           board_t old_cache = cache[target];
@@ -101,11 +101,11 @@ namespace reachability::search {
       });
     }
     std::array<board_t, shapes> ret;
-    static_for<orientations>([&](auto i){
+    static_for<orientations>([&][[gnu::always_inline]](auto i){
       constexpr auto index = block.mino_index[i];
       ret[index] |= cache[i];
     });
-    static_for<shapes>([&](auto i){
+    static_for<shapes>([&][[gnu::always_inline]](auto i){
       ret[i] &= landable_positions(usable[i]);
     });
     return ret;
@@ -129,8 +129,8 @@ namespace reachability::search {
     constexpr auto W = board_t::width;
     constexpr auto H = board_t::height;
     bool my_data[H][W];
-    static_for<H>([&](auto y) {
-      static_for<W>([&](auto x) {
+    static_for<H>([&][[gnu::always_inline]](auto y) {
+      static_for<W>([&][[gnu::always_inline]](auto x) {
         my_data[y][x] = data.template get<x, y>();
       });
     });
@@ -178,10 +178,10 @@ namespace reachability::search {
       }
     }
     std::array<board_t, shapes> true_ret;
-    static_for<orientations>([&](auto i) {
+    static_for<orientations>([&][[gnu::always_inline]](auto i) {
       auto index = block.mino_index[i];
-      static_for<H>([&](auto y) {
-        static_for<W>([&](auto x) {
+      static_for<H>([&][[gnu::always_inline]](auto y) {
+        static_for<W>([&][[gnu::always_inline]](auto x) {
           if (ret[i][y][x]) {
             true_ret[index].template set<x, y>();
           }
