@@ -27,15 +27,9 @@ namespace reachability {
     static constexpr under_t mask = under_t(-1) >> remaining_per_under;
     static constexpr int remaining_in_last = num_of_under * used_bits_per_under - H * W;
     static constexpr under_t last_mask = mask >> remaining_in_last;
-    constexpr board_t() {
-      check_invariant();
-    }
-    constexpr board_t(std::string_view s): board_t(convert_to_array(s)) {
-      check_invariant();
-    }
-    constexpr board_t(std::array<under_t, num_of_under> d): data{d.data(), std::experimental::element_aligned} {
-      check_invariant();
-    }
+    constexpr board_t() = default;
+    constexpr board_t(std::string_view s): board_t(convert_to_array(s)) {}
+    constexpr board_t(std::array<under_t, num_of_under> d): data{d.data(), std::experimental::element_aligned} {}
     static constexpr std::array<under_t, num_of_under> convert_to_array(std::string_view s) {
       std::array<under_t, num_of_under> data = {};
       for (std::size_t i = 0; i < last; ++i) {
@@ -46,70 +40,55 @@ namespace reachability {
     }
     template <int x, int y>
     constexpr void set() {
-      checking_guard _(*this);
       data[y / lines_per_under] |= under_t(1) << ((y % lines_per_under) * W + x);
     }
     template <int x, int y>
     constexpr int get() const {
-      checking_guard _(*this);
       if ((x < 0) || (x >= W) || (y < 0) || (y >= H)) {
         return 2;
       }
       return data[y / lines_per_under] & (under_t(1) << ((y % lines_per_under) * W + x)) ? 1 : 0;
     }
     constexpr bool any() const {
-      checking_guard _(*this);
       return *this != board_t{};
     }
     constexpr bool operator!=(board_t other) const {
-      checking_guard _(*this), _2(other);
       return any_of(data != other.data);
     }
     constexpr board_t operator~() const {
-      checking_guard _(*this);
       board_t other;
       other.data = mask_board() & ~data;
-      checking_guard _2(other);
       return other;
     }
     constexpr board_t &operator&=(board_t rhs) {
-      checking_guard _(*this), _2(rhs);
       data &= rhs.data;
       return *this;
     }
     constexpr board_t operator&(board_t rhs) const {
-      checking_guard _(*this), _2(rhs);
       board_t result = *this;
       result &= rhs;
       return result;
     }
     constexpr board_t &operator|=(board_t rhs) {
-      checking_guard _(*this), _2(rhs);
       data |= rhs.data;
       return *this;
     }
     constexpr board_t operator|(board_t rhs) const {
-      checking_guard _(*this), _2(rhs);
       board_t result = *this;
       result |= rhs;
-      checking_guard _3(result);
       return result;
     }
     constexpr board_t &operator^=(board_t rhs) {
-      checking_guard _(*this), _2(rhs);
       data ^= rhs.data;
       return *this;
     }
     constexpr board_t operator^(board_t rhs) const {
-      checking_guard _(*this), _2(rhs);
       board_t result = *this;
       result ^= rhs;
-      checking_guard _3(result);
       return result;
     }
     template <coord d, bool check = true>
     constexpr void move_() {
-      checking_guard _(*this);
       constexpr int dx = d[0], dy = d[1];
       if constexpr (dy == 0) {
         if constexpr (dx > 0) {
@@ -137,10 +116,8 @@ namespace reachability {
     }
     template <coord d, bool check = true>
     constexpr board_t move() const {
-      checking_guard _(*this);
       board_t result = *this;
       result.move_<d, check>();
-      checking_guard _2(result);
       return result;
     }
     friend constexpr std::string to_string(board_t board) {
@@ -195,7 +172,6 @@ namespace reachability {
       return ret;
     }
     constexpr int clear_full_lines() {
-      checking_guard _(*this);
       auto board = data;
       constexpr int needed = std::numeric_limits<decltype(W)>::digits - std::countl_zero(W) - 1;
       static_for<needed>([&][[gnu::always_inline]](auto i) {
@@ -292,15 +268,5 @@ namespace reachability {
       }
       return res;
     }
-    constexpr void check_invariant() const {
-      if (any_of((data & ~mask_board()) != zero<num_of_under>))
-        std::unreachable();
-    }
-    struct checking_guard {
-      board_t board;
-      constexpr checking_guard(board_t board) : board(board) {
-        board.check_invariant();
-      }
-    };
   };
 }
