@@ -145,10 +145,18 @@ namespace reachability::blocks {
   }}};
 
   template <typename RS>
-  inline constexpr auto call_with_block = [](){
-    constexpr struct {} _;
-    static_assert(std::is_same_v<RS, decltype(_)>, "unregistered rotation system");
-  };
+  constexpr auto call_with_block(char ch, auto f) {
+    switch (ch) {
+      case 'T': return f.template operator()<RS::T>();
+      case 'Z': return f.template operator()<RS::Z>();
+      case 'S': return f.template operator()<RS::S>();
+      case 'J': return f.template operator()<RS::J>();
+      case 'L': return f.template operator()<RS::L>();
+      case 'O': return f.template operator()<RS::O>();
+      case 'I': return f.template operator()<RS::I>();
+      default: std::unreachable();
+    }
+  }
 
   struct SRS { // used as a namespace but usable as a template parameter
     static constexpr pure_kick<4, 2, 5> common_kick = {{{
@@ -209,22 +217,6 @@ namespace reachability::blocks {
       {{-1, 0}},
       {{0, 0}}
     }}) + I_kick;
-  private:
-    ~SRS();
-  };
-
-  template <>
-  inline constexpr auto call_with_block<SRS> =
-      [] [[gnu::always_inline]] (char ch, auto f) {
-    switch (ch) {
-      case 'T': return f.template operator()<SRS::T>();
-      case 'Z': return f.template operator()<SRS::Z>();
-      case 'S': return f.template operator()<SRS::S>();
-      case 'J': return f.template operator()<SRS::J>();
-      case 'L': return f.template operator()<SRS::L>();
-      case 'O': return f.template operator()<SRS::O>();
-      case 'I': return f.template operator()<SRS::I>();
-      default: std::unreachable();
-    }
+    SRS() = delete;
   };
 }
