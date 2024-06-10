@@ -14,7 +14,10 @@ double test(const BOARD &b, string_view name, char block) {
   using namespace reachability::blocks;
   printf("BOARD %s\n", name.data());
   printf(" BLOCK %c\n", block);
-  auto binary_time = bench([&](){binary_bfs<SRS, start, init_rot>(b, block);}, 1000000);
+  auto binary_time = bench([&](){
+    DoNotOptimize(b);
+    DoNotOptimize(binary_bfs<SRS, start, init_rot>(b, block));
+  }, 1000000);
   printf("  binary  : %fns\n", binary_time);
   return binary_time;
 }

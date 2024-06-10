@@ -77,6 +77,17 @@ inline constexpr std::array board_names = {
   "LEMONTEA TSPIN", "LEMONTEA DT", "LEMONTEA TERRIBLE", "4T"
 };
 
+// from https://github.com/facebook/folly/blob/7a3f5e4e81bc83a07036e2d1d99d6a5bf5932a48/folly/lang/Hint-inl.h#L107
+// Apache License 2.0
+template <class Tp>
+inline void DoNotOptimize(Tp& value) {
+  asm volatile("" : : "m"(value) : "memory");
+}
+template <class Tp>
+inline void DoNotOptimize(const Tp &value) {
+  asm volatile("" : : "m"(value) : "memory");
+}
+
 auto bench(auto f, int count=50000) {
   auto start = std::chrono::system_clock::now();
   for (int _ = 0; _ < count; ++_) {

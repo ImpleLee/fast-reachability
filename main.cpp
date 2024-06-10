@@ -27,7 +27,11 @@ array<double, 2> test(const BOARD &b, string_view name) {
       cout << to_string(binary[i], b);
     }
   }
-  auto binary_time = bench([&](){binary = binary_bfs<block, start, init_rot>(b);}, 1000000);
+  auto binary_time = bench([&](){
+    DoNotOptimize(b);
+    binary = binary_bfs<block, start, init_rot>(b);
+    DoNotOptimize(b);
+  }, 1000000);
   cout << "  binary  : " << binary_time << "ns" << endl;
   auto ordinary_time = bench([&](){ordinary = ordinary_bfs_without_binary(b, block, start, init_rot);});
   cout << "  true ord: " << ordinary_time << "ns" << endl;
@@ -55,7 +59,10 @@ array<double, 2> test(const BOARD &b, string_view name, char block) {
       cout << to_string(binary[i], b);
     }
   }
-  auto binary_time = bench([&](){binary_bfs<SRS, start, init_rot>(b, block);}, 1000000);
+  auto binary_time = bench([&](){
+    DoNotOptimize(b);
+    DoNotOptimize(binary_bfs<SRS, start, init_rot>(b, block));
+  }, 1000000);
   cout << "  binary  : " << binary_time << "ns" << endl;
   auto ordinary_time = bench([&](){ordinary_bfs_without_binary<SRS>(b, block, start, init_rot);});
   cout << "  true ord: " << ordinary_time << "ns" << endl;
