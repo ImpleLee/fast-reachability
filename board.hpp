@@ -87,7 +87,7 @@ namespace reachability {
       result ^= rhs;
       return result;
     }
-    template <coord d, bool check = true>
+    template <coord d, coord check_range = coord{0, 0}>
     constexpr void move_() {
       constexpr int dx = d[0], dy = d[1];
       if constexpr (dy == 0) {
@@ -110,14 +110,14 @@ namespace reachability {
         auto moved = my_shift<dx, lines_per_under-shift>(my_split<pad+1, false>(data));
         data = (not_moved | moved) & mask_board();
       }
-      if constexpr (check && dx != 0) {
+      if constexpr (dx < 0 ? -dx > check_range[0] : dx > check_range[1]) {
         data &= mask_move<dx>();
       }
     }
-    template <coord d, bool check = true>
+    template <coord d, coord check_range = coord{0, 0}>
     constexpr board_t move() const {
       board_t result = *this;
-      result.move_<d, check>();
+      result.move_<d, check_range>();
       return result;
     }
     friend constexpr std::string to_string(board_t board) {

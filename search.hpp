@@ -20,13 +20,13 @@ namespace reachability::search {
   constexpr board_t landable_positions(board_t usable) {
     return usable & ~usable.template move<coord{0, 1}>();
   }
-  template <std::array kick, typename board_t>
+  template <std::array kick, coord range, typename board_t>
   constexpr std::array<board_t, kick.size()>
       kick_positions(board_t start, board_t end) {
     constexpr std::size_t N = kick.size();
     std::array<board_t, N> positions;
     static_for<N>([&][[gnu::always_inline]](auto i) {
-      positions[i] = start & end.template move<-kick[i]>();
+      positions[i] = start & end.template move<-kick[i], range>();
     });
     board_t temp = positions[0];
     static_for<N-1>([&][[gnu::always_inline]](auto i) {
@@ -51,7 +51,9 @@ namespace reachability::search {
       static_for<rotations>([&][[gnu::always_inline]](auto j) {
         constexpr auto target = block.rotation_target(i, j);
         constexpr auto index2 = block.mino_index[target];
-        kicks2[i][j] = kick_positions<block.kicks[i][j]>(usable[index], usable[index2]);
+        constexpr auto left_move_padding = block.left_padding(block.minos[index2]) + block.right_padding(block.minos[index]);
+        constexpr auto right_move_padding = block.right_padding(block.minos[index2]) + block.left_padding(block.minos[index]);
+        kicks2[i][j] = kick_positions<block.kicks[i][j], coord{left_move_padding, right_move_padding}>(usable[index], usable[index2]);
       });
     });
     constexpr std::array<coord, 3> MOVES = {{{-1, 0}, {1, 0}, {0, -1}}};
@@ -75,7 +77,8 @@ namespace reachability::search {
         while (true) {
           board_t result;
           static_for<MOVES.size()>([&][[gnu::always_inline]](auto j) {
-            result |= cache[i].template move<MOVES[j]>();
+            constexpr auto padding = block.left_padding(block.minos[index]) + block.right_padding(block.minos[index]);
+            result |= cache[i].template move<MOVES[j], coord{padding, padding}>();
           });
           result &= usable[index];
           if ((result & ~cache[i]).any()) [[likely]] {
@@ -88,7 +91,7 @@ namespace reachability::search {
           constexpr int target = block.rotation_target(i, j);
           board_t to;
           static_for<kicks>([&][[gnu::always_inline]](auto k){
-            to |= (cache[i] & kicks2[i][j][k]).template move<block.kicks[i][j][k], false>();
+            to |= (cache[i] & kicks2[i][j][k]).template move<block.kicks[i][j][k], coord{board_t::width, board_t::width}>();
           });
           board_t old_cache = cache[target];
           cache[target] |= to;

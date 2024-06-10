@@ -31,6 +31,20 @@ namespace reachability {
       }
       return (from + rotation_num + 1) % orientations;
     }
+    static constexpr int left_padding(mino m) {
+      int ret = 0;
+      for (const auto &co : m) {
+        ret = std::min(ret, co[0]);
+      }
+      return -ret;
+    }
+    static constexpr int right_padding(mino m) {
+      int ret = 0;
+      for (const auto &co : m) {
+        ret = std::max(ret, co[0]);
+      }
+      return ret;
+    }
   };
 }
 namespace reachability::blocks {
