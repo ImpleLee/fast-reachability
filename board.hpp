@@ -198,6 +198,24 @@ namespace reachability {
       });
       return lines;
     }
+    constexpr board_t all_bits() const {
+      auto board = data;
+      constexpr int needed = std::numeric_limits<decltype(W)>::digits - std::countl_zero(W) - 1;
+      static_for<needed>([&][[gnu::always_inline]](auto i) {
+        board &= board << (1 << i);
+      });
+      board &= board << (W - (1 << needed));
+      return to_board(board);
+    }
+    constexpr board_t populate_highest_bit() const {
+      // result is in highest bit (0 or 1), other bits are 0
+      // populate the result to all bits
+      auto result = data & one_bit<W - 1>();
+      auto pre_result = one_bit<W - 1>() - (result >> (W - 1));
+      pre_result &= ~one_bit<W - 1>();
+      pre_result |= pre_result << 1;
+      return to_board(pre_result);
+    }
   private:
     template <std::size_t N>
     using simd_of = std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, N>>;
@@ -205,6 +223,11 @@ namespace reachability {
     alignas(std::experimental::memory_alignment_v<data_t>) data_t data = 0;
     template <std::size_t N>
     static constexpr simd_of<N> zero = {};
+    static constexpr board_t to_board(data_t data) {
+      board_t ret;
+      ret.data = data;
+      return ret;
+    }
     template <int dx>
     static constexpr data_t mask_move() {
       board_t mask;
@@ -223,6 +246,14 @@ namespace reachability {
       }
       return (~mask).data;
     }
+    template <int dx>
+    static constexpr data_t one_bit() {
+      board_t ret;
+      static_for<H>([&][[gnu::always_inline]](auto j) {
+        ret.template set<dx, j>();
+      });
+      return ret.data;
+    };
     static constexpr data_t mask_board() {
       return data_t{[](auto i) {
         if constexpr (i == last) {
