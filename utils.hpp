@@ -1,6 +1,7 @@
 #pragma once
 #include <type_traits>
 #include <utility>
+#include <span>
 #include <algorithm>
 namespace reachability {
   template<typename F, std::size_t... S>
@@ -23,7 +24,13 @@ namespace reachability {
   struct static_vector {
     static constexpr std::size_t capacity = N;
     T data[N];
-    std::size_t used = 0;
+    std::size_t used;
+    template <std::size_t M>
+    constexpr static_vector(std::span<T, M> arr): used(M) {
+      static_assert(M <= N);
+      std::copy(arr.begin(), arr.end(), data);
+    }
+    static_vector() = delete;
     constexpr std::size_t size() const {
       return used;
     }
@@ -32,10 +39,6 @@ namespace reachability {
     }
     constexpr T &operator[](std::size_t i) {
       return data[i];
-    }
-    constexpr void concat(T *begin, T *end) {
-      std::copy(begin, end, data + used);
-      used += end - begin;
     }
   };
 }

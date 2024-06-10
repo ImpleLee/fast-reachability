@@ -5,6 +5,7 @@
 #include <queue>
 #include <array>
 #include <type_traits>
+#include <span>
 
 namespace reachability::search {
   using namespace blocks;
@@ -121,11 +122,8 @@ namespace reachability::search {
   [[gnu::noinline]]
   constexpr static_vector<board_t, 4> binary_bfs(board_t data, char b) {
     return call_with_block<RS>(b, [=]<block B>() {
-      static_vector<board_t, 4> ret;
-      static_assert(ret.capacity >= B.ORIENTATIONS);
-      auto ret2 = binary_bfs<B, start, init_rot>(data);
-      ret.concat(ret2.data(), ret2.data() + ret2.size());
-      return ret;
+      auto ret = binary_bfs<B, start, init_rot>(data);
+      return static_vector<board_t, 4>{std::span{ret}};
     });
   }
   template <typename board_t>
@@ -200,11 +198,8 @@ namespace reachability::search {
   [[gnu::noinline]]
   constexpr static_vector<board_t, 4> ordinary_bfs_without_binary(board_t data, char b, const coord &start, unsigned init_rot=0) {
     return call_with_block<RS>(b, [=]<block B>() {
-      static_vector<board_t, 4> ret;
-      static_assert(ret.capacity >= B.ORIENTATIONS);
-      auto ret2 = ordinary_bfs_without_binary(data, B, start, init_rot);
-      ret.concat(ret2.data(), ret2.data() + ret2.size());
-      return ret;
+      auto ret = ordinary_bfs_without_binary(data, B, start, init_rot);
+      return static_vector<board_t, 4>{std::span{ret}};
     });
   }
 }
