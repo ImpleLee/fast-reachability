@@ -64,10 +64,10 @@ namespace reachability::search {
     need_visit[init_rot] = true;
     std::array<board_t, orientations> cache;
     /* constexpr */ const auto empty_usable = usable_positions<block.minos[init_rot2]>(board_t());
-    const auto same = ~(empty_usable ^ usable[init_rot2]);
-    const auto fast_paths = same.all_bits().populate_highest_bit();
-    if (fast_paths.template get<start2[0], start2[1]>()) [[likely]] {
-      cache[init_rot] = fast_paths;
+    const auto same_as_empty = ~(empty_usable ^ usable[init_rot2]);
+    const auto empty_lines = same_as_empty.all_bits().populate_highest_bit();
+    if (empty_lines.template get<start2[0], start2[1]>()) [[likely]] {
+      cache[init_rot] = empty_lines;
     } else {
       cache[init_rot].template set<start2[0], start2[1]>();
     }
