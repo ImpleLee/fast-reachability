@@ -145,7 +145,7 @@ namespace reachability::blocks {
   }}};
 
   template <typename RS>
-  constexpr auto call_with_block(char ch, auto f) {
+  [[gnu::always_inline]] constexpr auto call_with_block(char ch, auto f) {
     switch (ch) {
       case 'T': return f.template operator()<RS::T>();
       case 'Z': return f.template operator()<RS::Z>();
