@@ -123,9 +123,8 @@ namespace reachability::search {
     return call_with_block<RS>(b, [=]<block B>() {
       static_vector<board_t, 4> ret;
       static_assert(ret.capacity >= B.ORIENTATIONS);
-      for (auto i : binary_bfs<B, start, init_rot>(data)) {
-        ret.push_back(i);
-      }
+      auto ret2 = binary_bfs<B, start, init_rot>(data);
+      ret.concat(ret2.data(), ret2.data() + ret2.size());
       return ret;
     });
   }
@@ -203,9 +202,8 @@ namespace reachability::search {
     return call_with_block<RS>(b, [=]<block B>() {
       static_vector<board_t, 4> ret;
       static_assert(ret.capacity >= B.ORIENTATIONS);
-      for (auto i : ordinary_bfs_without_binary(data, B, start, init_rot)) {
-        ret.push_back(i);
-      }
+      auto ret2 = ordinary_bfs_without_binary(data, B, start, init_rot);
+      ret.concat(ret2.data(), ret2.data() + ret2.size());
       return ret;
     });
   }

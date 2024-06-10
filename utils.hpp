@@ -1,6 +1,7 @@
 #pragma once
 #include <type_traits>
 #include <utility>
+#include <algorithm>
 namespace reachability {
   template<typename F, std::size_t... S>
   [[gnu::always_inline]]
@@ -32,8 +33,9 @@ namespace reachability {
     constexpr T &operator[](std::size_t i) {
       return data[i];
     }
-    constexpr void push_back(const T &t) {
-      data[used++] = t;
+    constexpr void concat(T *begin, T *end) {
+      std::copy(begin, end, data + used);
+      used += end - begin;
     }
   };
 }
