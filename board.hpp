@@ -200,11 +200,9 @@ namespace reachability {
     }
     constexpr board_t all_bits() const {
       auto board = data;
-      constexpr int needed = std::numeric_limits<decltype(W)>::digits - std::countl_zero(W) - 1;
-      static_for<needed>([&][[gnu::always_inline]](auto i) {
-        board &= board << (1 << i);
+      static_for<W - 1>([&][[gnu::always_inline]](auto i) {
+        board &= data << (i + 1);
       });
-      board &= board << (W - (1 << needed));
       return to_board(board);
     }
     constexpr board_t populate_highest_bit() const {
