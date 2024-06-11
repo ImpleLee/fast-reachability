@@ -221,20 +221,10 @@ namespace reachability {
     }
     constexpr board_t remove_ones_after_zero() const {
       auto board = data | ~mask_board();
-      std::array<int, num_of_under> ones;
-      static_for<num_of_under>([&][[gnu::always_inline]](auto i) {
-        ones[i] = std::countl_one(under_t(board[i]));
-      });
-      bool found = false;
-      #pragma unroll num_of_under
-      for (int i = num_of_under - 1; i >= 0; --i) {
-        if (found) {
-          board[i] = 0;
-        } else if (ones[i] < std::numeric_limits<under_t>::digits) {
-          found = true;
-          board[i] &= ~((~under_t(0)) >> ones[i]);
-        }
-      }
+      auto bad = board != -1;
+      int bad_index = find_last_set(bad);
+      where(data_t([][[gnu::always_inline]](auto i) { return i; }) < bad_index, board) = 0;
+      board[bad_index] &= ~((~under_t(0)) >> std::countl_one(under_t(board[bad_index])));
       return to_board(board & mask_board());
     }
     constexpr board_t populate_highest_bit() const {
