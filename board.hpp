@@ -221,17 +221,18 @@ namespace reachability {
     }
     constexpr board_t remove_ones_after_zero() const {
       auto board = data | ~mask_board();
+      std::array<int, num_of_under> ones;
+      static_for<num_of_under>([&][[gnu::always_inline]](auto i) {
+        ones[i] = std::countl_one(under_t(board[i]));
+      });
       bool found = false;
       #pragma unroll num_of_under
       for (int i = num_of_under - 1; i >= 0; --i) {
         if (found) {
           board[i] = 0;
-        } else {
-          int ones = std::countl_one(under_t(board[i]));
-          if (ones < std::numeric_limits<under_t>::digits) {
-            found = true;
-            board[i] &= ~((~under_t(0)) >> ones);
-          }
+        } else if (ones[i] < std::numeric_limits<under_t>::digits) {
+          found = true;
+          board[i] &= ~((~under_t(0)) >> ones[i]);
         }
       }
       return to_board(board & mask_board());
