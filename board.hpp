@@ -198,12 +198,43 @@ namespace reachability {
       });
       return lines;
     }
+    constexpr board_t has_single_bit() const {
+      auto saturated = data | one_bit<W - 1>();
+      saturated &= saturated - one_bit<0>();
+      // if data has no 1 in not-highest bits: 0
+      // if data has exactly one 1 in not-highest bits: 10...0
+      // if data has more than one 1 in not-highest bits: 1...1...
+      auto saturated2 = saturated | one_bit<W - 1>();
+      saturated2 &= saturated2 - one_bit<0>();
+      auto result = (saturated ^ data) & ~saturated2;
+      return to_board(result);
+    }
     constexpr board_t all_bits() const {
       auto board = data;
       static_for<W - 1>([&][[gnu::always_inline]](auto i) {
         board &= data << (i + 1);
       });
       return to_board(board);
+    }
+    constexpr board_t any_bit() const {
+      return ~to_board(~data).all_bits();
+    }
+    constexpr board_t remove_ones_after_zero() const {
+      auto board = data | ~mask_board();
+      bool found = false;
+      #pragma unroll num_of_under
+      for (int i = num_of_under - 1; i >= 0; --i) {
+        if (found) {
+          board[i] = 0;
+        } else {
+          int ones = std::countl_one(under_t(board[i]));
+          if (ones < std::numeric_limits<under_t>::digits) {
+            found = true;
+            board[i] &= ~((~under_t(0)) >> ones);
+          }
+        }
+      }
+      return to_board(board & mask_board());
     }
     constexpr board_t populate_highest_bit() const {
       // result is in highest bit (0 or 1), other bits are 0

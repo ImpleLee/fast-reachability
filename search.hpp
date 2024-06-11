@@ -21,6 +21,11 @@ namespace reachability::search {
   constexpr board_t landable_positions(board_t usable) {
     return usable & ~usable.template move<coord{0, 1}>();
   }
+  template <typename board_t>
+  constexpr board_t consecutive_lines(board_t usable) {
+    const auto indicator01 = usable & ~usable.template move<coord{1, 0}>();
+    return indicator01.has_single_bit();
+  }
   template <std::array kick, typename board_t>
   constexpr std::array<board_t, kick.size()>
       kick_positions(board_t start, board_t end) {
@@ -64,11 +69,20 @@ namespace reachability::search {
     bool need_visit[orientations] = { };
     need_visit[init_rot] = true;
     std::array<board_t, orientations> cache;
-    /* constexpr */ const auto empty_usable = usable_positions<block.minos[init_rot2]>(board_t());
-    const auto same_as_empty = ~(empty_usable ^ usable[init_rot2]);
-    const auto empty_lines = same_as_empty.all_bits().populate_highest_bit();
-    if (empty_lines.template get<start2[0], start2[1]>()) [[likely]] {
-      cache[init_rot] = empty_lines;
+    const auto consecutive = consecutive_lines(usable[init_rot2]).populate_highest_bit();
+    if (consecutive.template get<start2[0], start2[1]>()) [[likely]] {
+      const auto consecutive_usable = consecutive & usable[init_rot2];
+      const auto indicator11 = consecutive_usable & consecutive_usable.template move<coord{0, -1}>();
+      auto maybe_usable = indicator11.any_bit().populate_highest_bit();
+      constexpr int removed_lines = board_t::height - start2[1];
+      if constexpr (removed_lines > 0) {
+        maybe_usable |= ~(~board_t()).template move<coord{0, -removed_lines}>();
+      }
+      auto good_lines = maybe_usable.remove_ones_after_zero();
+      if constexpr (removed_lines > 1) {
+        good_lines &= (~board_t()).template move<coord{0, -(removed_lines - 1)}>();
+      }
+      cache[init_rot] = good_lines & usable[init_rot2];
     } else {
       cache[init_rot].template set<start2[0], start2[1]>();
     }
