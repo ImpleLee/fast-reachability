@@ -48,17 +48,8 @@ namespace reachability::search {
     constexpr int kicks = block.KICK_PER_ROTATION;
     constexpr int shapes = block.SHAPES;
     board_t usable[shapes];
-    std::array<board_t, kicks> kicks2[orientations][rotations];
     static_for<shapes>([&][[gnu::always_inline]](auto i) {
       usable[i] = usable_positions<block.minos[i]>(data);
-    });
-    static_for<orientations>([&][[gnu::always_inline]](auto i) {
-      constexpr auto index = block.mino_index[i];
-      static_for<rotations>([&][[gnu::always_inline]](auto j) {
-        constexpr auto target = block.rotation_target(i, j);
-        constexpr auto index2 = block.mino_index[target];
-        kicks2[i][j] = kick_positions<block.kicks[i][j]>(usable[index], usable[index2]);
-      });
     });
     constexpr std::array<coord, 3> MOVES = {{{-1, 0}, {1, 0}, {0, -1}}};
     constexpr coord start2 = start + block.mino_offset[init_rot];
@@ -109,8 +100,10 @@ namespace reachability::search {
         static_for<rotations>([&][[gnu::always_inline]](auto j){
           constexpr int target = block.rotation_target(i, j);
           board_t to;
+          constexpr auto index2 = block.mino_index[target];
+          const auto kicks2 = kick_positions<block.kicks[i][j]>(usable[index], usable[index2]);
           static_for<kicks>([&][[gnu::always_inline]](auto k){
-            to |= (cache[i] & kicks2[i][j][k]).template move<block.kicks[i][j][k], false>();
+            to |= (cache[i] & kicks2[k]).template move<block.kicks[i][j][k], false>();
           });
           board_t old_cache = cache[target];
           cache[target] |= to;
