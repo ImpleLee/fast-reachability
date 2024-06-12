@@ -88,10 +88,12 @@ inline void DoNotOptimize(const Tp &value) {
   asm volatile("" : : "m"(value) : "memory");
 }
 
-auto bench(auto f, int count=50000) {
+template <int count = 50000>
+auto bench(auto f, auto &&...args) {
   auto start = std::chrono::system_clock::now();
   for (int _ = 0; _ < count; ++_) {
-    f();
+    (void)(DoNotOptimize(args), ...);
+    DoNotOptimize(f(args...));
   }
   auto end = std::chrono::system_clock::now();
   return double(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count()) / count;

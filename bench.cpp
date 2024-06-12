@@ -1,5 +1,4 @@
 #include "block.hpp"
-#include "board.hpp"
 #include "search.hpp"
 #include <string_view>
 #include <cstdio>
@@ -7,17 +6,13 @@
 #include "bench.hpp"
 using namespace std;
 
-using BOARD = reachability::board_t<WIDTH, HEIGHT>;
 template <bool print=false, reachability::coord start=reachability::coord{4, 20}, unsigned init_rot=0>
 double test(const BOARD &b, string_view name, char block) {
   using namespace reachability::search;
   using namespace reachability::blocks;
   printf("BOARD %s\n", name.data());
   printf(" BLOCK %c\n", block);
-  auto binary_time = bench([&](){
-    DoNotOptimize(b);
-    DoNotOptimize(binary_bfs<SRS, start, init_rot>(b, block));
-  }, 1000000);
+  auto binary_time = bench<1000000>([](BOARD b, char block){ return binary_bfs<SRS, start, init_rot>(b, block); }, b, block);
   printf("  binary  : %fns\n", binary_time);
   return binary_time;
 }
