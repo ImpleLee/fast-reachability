@@ -70,11 +70,10 @@ namespace reachability::search {
     need_visit[init_rot] = true;
     std::array<board_t, orientations> cache;
     const auto consecutive = consecutive_lines(usable[init_rot2]).populate_highest_bit();
-    if (consecutive.template get<start2[0], start2[1]>()) [[likely]] {
-      const auto consecutive_usable = consecutive & usable[init_rot2];
-      const auto indicator11 = consecutive_usable & consecutive_usable.template move<coord{0, -1}>();
-      const auto indicator10 = usable[init_rot2] & ~usable[init_rot2].template move<coord{0, -1}>();
-      auto maybe_usable = (indicator11.any_bit() | indicator10.no_bit()).populate_highest_bit();
+    if (consecutive.template get<start2[1]>()) [[likely]] {
+      const auto connected = usable[init_rot2] & usable[init_rot2].template move<coord{0, -1}>();
+      const auto covered = usable[init_rot2] & ~usable[init_rot2].template move<coord{0, -1}>();
+      auto maybe_usable = (connected.any_bit() & (covered.no_bit() | consecutive)).populate_highest_bit();
       constexpr int removed_lines = board_t::height - start2[1];
       if constexpr (removed_lines > 0) {
         maybe_usable |= ~(~board_t()).template move<coord{0, -removed_lines}>();

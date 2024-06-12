@@ -49,6 +49,11 @@ namespace reachability {
       }
       return data[y / lines_per_under] & (under_t(1) << ((y % lines_per_under) * W + x)) ? 1 : 0;
     }
+    template <int y>
+    constexpr int get() const {
+      // use highest bit as the result
+      return get<W - 1, y>();
+    }
     constexpr bool any() const {
       return *this != board_t{};
     }
