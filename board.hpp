@@ -130,7 +130,7 @@ namespace reachability {
       static_for<H>([&][[gnu::always_inline]](auto y) {
         std::string this_ret;
         static_for<W>([&][[gnu::always_inline]](auto x) {
-          this_ret += board.template get<x, y>() ? "[]" : "  ";
+          this_ret += board.get<x, y>() ? "[]" : "  ";
         });
         this_ret += '\n';
         ret = this_ret + ret;
@@ -142,8 +142,8 @@ namespace reachability {
       static_for<H>([&][[gnu::always_inline]](auto y) {
         std::string this_ret;
         static_for<W>([&][[gnu::always_inline]](auto x) {
-          bool b1 = board1.template get<x, y>();
-          bool b2 = board2.template get<x, y>();
+          bool b1 = board1.get<x, y>();
+          bool b2 = board2.get<x, y>();
           if (b1 && b2) {
             this_ret += "%%";
           } else if (b1) {
@@ -164,8 +164,8 @@ namespace reachability {
       static_for<H>([&][[gnu::always_inline]](auto y) {
         std::string this_ret;
         static_for<W>([&][[gnu::always_inline]](auto x) {
-          bool tested[2] = {bool(board1.template get<x, y>()), bool(board2.template get<x, y>())};
-          bool b3 = board_3.template get<x, y>();
+          bool tested[2] = {bool(board1.get<x, y>()), bool(board2.get<x, y>())};
+          bool b3 = board_3.get<x, y>();
           std::string symbols = "  <>[]%%";
           for (int i = 0; i < 2; ++i) {
             this_ret += symbols[b3 * 4 + tested[i] * 2 + i];
@@ -272,13 +272,13 @@ namespace reachability {
       if constexpr (dx > 0) {
         static_for<dx>([&][[gnu::always_inline]](auto i) {
           static_for<H>([&][[gnu::always_inline]](auto j) {
-            mask.template set<i, j>();
+            mask.set<i, j>();
           });
         });
       } else if constexpr (dx < 0) {
         static_for<-dx>([&][[gnu::always_inline]](auto i) {
           static_for<H>([&][[gnu::always_inline]](auto j) {
-            mask.template set<W - 1 - i, j>();
+            mask.set<W - 1 - i, j>();
           });
         });
       }
@@ -288,7 +288,7 @@ namespace reachability {
     static constexpr data_t one_bit() {
       board_t ret;
       static_for<H>([&][[gnu::always_inline]](auto j) {
-        ret.template set<dx, j>();
+        ret.set<dx, j>();
       });
       return ret.data;
     };
