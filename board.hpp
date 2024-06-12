@@ -219,6 +219,9 @@ namespace reachability {
     constexpr board_t any_bit() const {
       return ~to_board(~data).all_bits();
     }
+    constexpr board_t no_bit() const {
+      return ~any_bit();
+    }
     constexpr board_t remove_ones_after_zero() const {
       auto board = data | ~mask_board();
       std::array<int, num_of_under> ones;
