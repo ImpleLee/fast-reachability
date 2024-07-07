@@ -23,7 +23,7 @@ namespace reachability::search {
   }
   template <typename board_t>
   constexpr board_t consecutive_lines(board_t usable) {
-    const auto indicator01 = usable & ~usable.template move<coord{1, 0}>();
+    const auto indicator01 = usable.get_heads();
     return indicator01.has_single_bit();
   }
   template <std::array kick, typename board_t>
