@@ -254,6 +254,9 @@ namespace reachability {
       pre_result |= pre_result << 1;
       return to_board(pre_result);
     }
+    constexpr board_t continuously_expand(board_t other) const {
+      return to_board(data + other.data);
+    }
   private:
     template <std::size_t N>
     using simd_of = std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, N>>;
