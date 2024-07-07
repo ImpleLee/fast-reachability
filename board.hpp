@@ -256,8 +256,15 @@ namespace reachability {
       pre_result |= pre_result << 1;
       return to_board(pre_result);
     }
-    constexpr board_t continuously_expand(board_t other) const {
-      return to_board(data + other.data);
+    constexpr board_t get_heads() const {
+      return (*this) & ~move<coord{-1, 0}>();
+    }
+    friend constexpr board_t can_expand(board_t current, board_t possible) {
+      const auto starts = possible & current.template move<coord{-1, 0}>();
+      const auto ends = possible & current.template move<coord{1, 0}>();
+      const auto all_heads = possible.get_heads();
+      const auto heads = starts.data | (ends.data + (possible & ~all_heads).data);
+      return to_board(heads);
     }
   private:
     template <std::size_t N>

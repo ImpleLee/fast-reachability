@@ -62,18 +62,15 @@ namespace reachability::search {
     std::array<board_t, orientations> cache;
     const auto consecutive = consecutive_lines(usable[init_rot2]).populate_highest_bit();
     if (consecutive.template get<start2[1]>()) [[likely]] {
-      const auto connected = usable[init_rot2] & usable[init_rot2].template move<coord{0, -1}>();
-      const auto covered = usable[init_rot2] & ~usable[init_rot2].template move<coord{0, -1}>();
-      const auto ends = covered & connected.template move<coord{1, 0}>();
-      const auto starts = covered & connected.template move<coord{-1, 0}>();
-      const auto all_heads = covered & ~covered.template move<coord{-1, 0}>();
-      const auto heads = starts | ends.continuously_expand(covered & ~all_heads);
-      auto maybe_usable = (heads | ~all_heads).all_bits().populate_highest_bit();
+      const auto current = usable[init_rot2] & usable[init_rot2].template move<coord{0, -1}>();
+      const auto covered = usable[init_rot2] & ~current;
+      const auto expandable = can_expand(current, covered);
+      auto whole_line_usable = (expandable | ~covered.get_heads()).all_bits().populate_highest_bit();
       constexpr int removed_lines = board_t::height - start2[1];
       if constexpr (removed_lines > 0) {
-        maybe_usable |= ~(~board_t()).template move<coord{0, -removed_lines}>();
+        whole_line_usable |= ~(~board_t()).template move<coord{0, -removed_lines}>();
       }
-      auto good_lines = maybe_usable.remove_ones_after_zero();
+      auto good_lines = whole_line_usable.remove_ones_after_zero();
       if constexpr (removed_lines > 1) {
         good_lines &= (~board_t()).template move<coord{0, -(removed_lines - 1)}>();
       }
