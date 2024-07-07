@@ -60,7 +60,7 @@ namespace reachability::search {
     bool need_visit[orientations] = { };
     need_visit[init_rot] = true;
     std::array<board_t, orientations> cache;
-    const auto consecutive = consecutive_lines(usable[init_rot2]).populate_highest_bit();
+    const auto consecutive = consecutive_lines(usable[init_rot2]);
     if (consecutive.template get<start2[1]>()) [[likely]] {
       const auto current = usable[init_rot2] & usable[init_rot2].template move<coord{0, -1}>();
       const auto covered = usable[init_rot2] & ~current;
