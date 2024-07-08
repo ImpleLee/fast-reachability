@@ -215,9 +215,8 @@ namespace reachability {
       return to_board(result);
     }
     constexpr board_t all_bits() const {
-      auto high = data & one_bit<W - 1>();
       auto low = data & ~one_bit<W - 1>();
-      return to_board(high & (low + one_bit<0>()));
+      return to_board(data & (low + one_bit<0>()));
     }
     constexpr board_t any_bit() const {
       return ~to_board(~data).all_bits();
