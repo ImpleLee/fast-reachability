@@ -215,13 +215,9 @@ namespace reachability {
       return to_board(result);
     }
     constexpr board_t all_bits() const {
-      auto board = data;
-      constexpr int needed = std::numeric_limits<decltype(W)>::digits - std::countl_zero(W) - 1;
-      static_for<needed>([&][[gnu::always_inline]](auto i) {
-        board &= board << (1 << i);
-      });
-      board &= board << (W - (1 << needed));
-      return to_board(board);
+      auto high = data & one_bit<W - 1>();
+      auto low = data & ~one_bit<W - 1>();
+      return to_board(high & (low + one_bit<0>()));
     }
     constexpr board_t any_bit() const {
       return ~to_board(~data).all_bits();
