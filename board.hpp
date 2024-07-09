@@ -247,9 +247,7 @@ namespace reachability {
       // populate the result to all bits
       auto result = data & one_bit<W - 1>();
       auto pre_result = one_bit<W - 1>() - (result >> (W - 1));
-      pre_result &= ~one_bit<W - 1>();
-      pre_result |= pre_result << 1;
-      return to_board(pre_result);
+      return to_board(pre_result ^ one_bit<W - 1>());
     }
     constexpr board_t get_heads() const {
       return (*this) & ~move<coord{-1, 0}>();
