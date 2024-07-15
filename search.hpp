@@ -88,28 +88,27 @@ namespace reachability::search {
         constexpr auto index = block.mino_index[i];
         need_visit[i] = false;
         while (true) {
-          board_t result;
+          board_t result = cache[i];
           static_for<MOVES.size()>([&][[gnu::always_inline]](auto j) {
             result |= cache[i].template move<MOVES[j]>();
           });
           result &= usable[index];
-          if ((result & ~cache[i]).any()) [[likely]] {
-            cache[i] |= result;
+          if (result != cache[i]) [[likely]] {
+            cache[i] = result;
           } else {
             break;
           }
         }
         static_for<rotations>([&][[gnu::always_inline]](auto j){
           constexpr int target = block.rotation_target(i, j);
-          board_t to;
+          board_t to = cache[target];
           constexpr auto index2 = block.mino_index[target];
           const auto kicks2 = kick_positions<block.kicks[i][j]>(usable[index], usable[index2]);
           static_for<kicks>([&][[gnu::always_inline]](auto k){
             to |= (cache[i] & kicks2[k]).template move<block.kicks[i][j][k], false>();
           });
-          board_t old_cache = cache[target];
-          cache[target] |= to;
-          if ((to & ~old_cache).any()) {
+          if (to != cache[target]) {
+            cache[target] = to;
             need_visit[target] = true;
             if (target < i)
               updated = true;
