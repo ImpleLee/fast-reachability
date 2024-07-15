@@ -27,6 +27,7 @@ namespace reachability::search {
     return indicator01.has_single_bit();
   }
   template <std::array kick, typename board_t>
+  [[gnu::always_inline]]
   constexpr std::array<board_t, kick.size()>
       kick_positions(board_t start, board_t end) {
     constexpr std::size_t N = kick.size();
