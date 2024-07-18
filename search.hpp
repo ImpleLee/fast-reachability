@@ -107,8 +107,9 @@ namespace reachability::search {
           static_for<kicks>([&][[gnu::always_inline]](auto k){
             to |= (cache[i] & kicks2[k]).template move<block.kicks[i][j][k], false>();
           });
-          if (to != cache[target]) {
-            cache[target] = to;
+          auto old_cache = cache[target];
+          cache[target] = to;
+          if (to != old_cache) {
             need_visit[target] = true;
             if (target < i)
               updated = true;
