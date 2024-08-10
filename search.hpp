@@ -112,7 +112,6 @@ namespace reachability::search {
         static_for<MOVES.size()>([&][[gnu::always_inline]](auto j) {
           result |= shared_cache.template move<MOVES[j]>() & move_mask[j];
         });
-        result &= shared_usable;
         if (result != shared_cache) [[likely]] {
           shared_cache = result;
         } else {
