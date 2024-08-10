@@ -42,6 +42,36 @@ namespace reachability::search {
     });
     return positions;
   }
+  template <coord my_start, typename board_t>
+  constexpr board_t fill_consecutively(board_t usable) {
+    const auto consecutive = consecutive_lines(usable);
+    if (!consecutive.template get<my_start[1]>()) [[unlikely]] {
+      board_t result;
+      result.template set<my_start[0], my_start[1]>();
+      return result;
+    }
+    const auto current = usable & usable.template move<coord{0, -1}>();
+    const auto covered = usable & ~current;
+    const auto expandable = can_expand(current, covered);
+    auto whole_line_usable = (expandable | ~covered.get_heads()).all_bits().populate_highest_bit();
+    constexpr int removed_lines = board_t::height - my_start[1];
+    if constexpr (removed_lines > 0) {
+      whole_line_usable |= ~(~board_t()).template move<coord{0, -removed_lines}>();
+    }
+    auto good_lines = whole_line_usable.remove_ones_after_zero();
+    if constexpr (removed_lines > 1) {
+      good_lines &= (~board_t()).template move<coord{0, -(removed_lines - 1)}>();
+    }
+    return good_lines & usable;
+  };
+  template <typename A, typename B>
+  constexpr bool is_same(A a, B b) {
+    if constexpr (!std::is_same_v<std::remove_cvref_t<A>, std::remove_cvref_t<B>>) {
+      return false;
+    } else {
+      return a == b;
+    }
+  }
   template <block block, coord start, unsigned init_rot, typename board_t>
   constexpr std::array<board_t, block.SHAPES> binary_bfs(board_t data) {
     constexpr int orientations = block.ORIENTATIONS;
@@ -58,26 +88,45 @@ namespace reachability::search {
     if (!usable[init_rot2].template get<start2[0], start2[1]>()) [[unlikely]] {
       return {};
     }
-    bool need_visit[orientations] = { };
-    need_visit[init_rot] = true;
+    bool need_visit[orientations] = { }, skip_move[orientations] = { };
     std::array<board_t, orientations> cache;
-    const auto consecutive = consecutive_lines(usable[init_rot2]);
-    if (consecutive.template get<start2[1]>()) [[likely]] {
-      const auto current = usable[init_rot2] & usable[init_rot2].template move<coord{0, -1}>();
-      const auto covered = usable[init_rot2] & ~current;
-      const auto expandable = can_expand(current, covered);
-      auto whole_line_usable = (expandable | ~covered.get_heads()).all_bits().populate_highest_bit();
-      constexpr int removed_lines = board_t::height - start2[1];
-      if constexpr (removed_lines > 0) {
-        whole_line_usable |= ~(~board_t()).template move<coord{0, -removed_lines}>();
+    if constexpr (is_same(block, SRS::T)) {
+      // exclude I because it can have 11 states per line
+      // exclude O because it has only 1 orientation
+      // process SZ for their extra offsets
+      std::array<board_t, MOVES.size()> move_mask;
+      static_for<MOVES.size()>([&][[gnu::always_inline]](auto i) {
+        static_for<shapes>([&][[gnu::always_inline]](auto j) {
+          move_mask[i] |= usable[j] & usable[j].template move<-MOVES[i]>();
+          // the mask should be applied after the move
+        });
+      });
+      board_t shared_usable;
+      // remove invalid points, e.g. JLSZ states with only 0 and 2 or 1 and 3 valid
+      static_for<shapes>([&][[gnu::always_inline]](auto i) {
+        shared_usable |= usable[i];
+      });
+      board_t shared_cache = fill_consecutively<start2>(shared_usable);
+      while (true) {
+        board_t result = shared_cache;
+        static_for<MOVES.size()>([&][[gnu::always_inline]](auto j) {
+          result |= shared_cache.template move<MOVES[j]>() & move_mask[j];
+        });
+        result &= shared_usable;
+        if (result != shared_cache) [[likely]] {
+          shared_cache = result;
+        } else {
+          break;
+        }
       }
-      auto good_lines = whole_line_usable.remove_ones_after_zero();
-      if constexpr (removed_lines > 1) {
-        good_lines &= (~board_t()).template move<coord{0, -(removed_lines - 1)}>();
-      }
-      cache[init_rot] = good_lines & usable[init_rot2];
+      static_for<shapes>([&][[gnu::always_inline]](auto i) {
+        cache[i] = shared_cache & usable[i];
+        need_visit[i] = true;
+        skip_move[i] = true;
+      });
     } else {
-      cache[init_rot].template set<start2[0], start2[1]>();
+      need_visit[init_rot] = true;
+      cache[init_rot] = fill_consecutively<start2>(usable[init_rot2]);
     }
     for (bool updated = true; updated;) [[unlikely]] {
       updated = false;
@@ -87,17 +136,21 @@ namespace reachability::search {
         }
         constexpr auto index = block.mino_index[i];
         need_visit[i] = false;
-        while (true) {
-          board_t result = cache[i];
-          static_for<MOVES.size()>([&][[gnu::always_inline]](auto j) {
-            result |= cache[i].template move<MOVES[j]>();
-          });
-          result &= usable[index];
-          if (result != cache[i]) [[likely]] {
-            cache[i] = result;
-          } else {
-            break;
+        if (!skip_move[i]) {
+          while (true) {
+            board_t result = cache[i];
+            static_for<MOVES.size()>([&][[gnu::always_inline]](auto j) {
+              result |= cache[i].template move<MOVES[j]>();
+            });
+            result &= usable[index];
+            if (result != cache[i]) [[likely]] {
+              cache[i] = result;
+            } else {
+              break;
+            }
           }
+        } else {
+          skip_move[i] = false;
         }
         static_for<rotations>([&][[gnu::always_inline]](auto j){
           constexpr int target = block.rotation_target(i, j);
@@ -111,6 +164,7 @@ namespace reachability::search {
           cache[target] = to;
           if (to != old_cache) {
             need_visit[target] = true;
+            skip_move[target] = false;
             if (target < i)
               updated = true;
           }

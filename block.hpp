@@ -24,6 +24,7 @@ namespace reachability {
     std::array<int, orientations> mino_index;
     [[no_unique_address]]
     std::array<coord, orientations> mino_offset;
+    friend bool operator==(block, block) = default;
     static constexpr int rotation_target(int from, int rotation_num) {
       if constexpr (orientations == 4 && rotations == 2) {
         // cw & ccw
