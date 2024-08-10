@@ -5,6 +5,12 @@
 #include <chrono>
 #include "board.hpp"
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#else
+#include <x86intrin.h>
+#endif
+
 constexpr int WIDTH = 10, HEIGHT = 24;
 using BOARD = reachability::board_t<WIDTH, HEIGHT>;
 constexpr auto merge_str(std::initializer_list<std::string_view> &&b_str) {
@@ -90,11 +96,11 @@ inline void DoNotOptimize(const Tp &value) {
 
 template <int count = 50000>
 auto bench(auto f, auto &&...args) {
-  auto start = std::chrono::system_clock::now();
+  auto start = __rdtsc();
   for (int _ = 0; _ < count; ++_) {
     (void)(DoNotOptimize(args), ...);
     DoNotOptimize(f(args...));
   }
-  auto end = std::chrono::system_clock::now();
-  return double(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count()) / count;
+  auto end = __rdtsc();
+  return double(end - start) / count;
 }

@@ -28,9 +28,9 @@ array<double, 2> test(const BOARD &b, string_view name) {
     }
   }
   auto binary_time = bench<1000000>([](auto b){ return binary_bfs<block, start, init_rot>(b); }, b);
-  cout << "  binary  : " << binary_time << "ns" << endl;
+  cout << "  binary  : " << binary_time << " cycles" << endl;
   auto ordinary_time = bench([](auto b){ return ordinary_bfs_without_binary(b, block, start, init_rot); }, b);
-  cout << "  true ord: " << ordinary_time << "ns" << endl;
+  cout << "  true ord: " << ordinary_time << " cycles" << endl;
   return {binary_time, ordinary_time};
 }
 template <bool print=false, reachability::coord start=reachability::coord{4, 20}, unsigned init_rot=0>
@@ -56,9 +56,9 @@ array<double, 2> test(const BOARD &b, string_view name, char block) {
     }
   }
   auto binary_time = bench<1000000>([](auto b, auto block){ return binary_bfs<SRS, start, init_rot>(b, block); }, b, block);
-  cout << "  binary  : " << binary_time << "ns" << endl;
+  cout << "  binary  : " << binary_time << " cycles" << endl;
   auto ordinary_time = bench([](auto b, auto block){ return ordinary_bfs_without_binary<SRS>(b, block, start, init_rot); }, b, block);
-  cout << "  true ord: " << ordinary_time << "ns" << endl;
+  cout << "  true ord: " << ordinary_time << " cycles" << endl;
   return {binary_time, ordinary_time};
 }
 int main() {
@@ -70,8 +70,8 @@ int main() {
       ordinary_sum += ordinary_time;
     }
   }
-  cout << "TOTAL binary  : " << binary_sum << "ns" << endl;
-  cout << "TOTAL true ord: " << ordinary_sum << "ns" << endl;
+  cout << "TOTAL binary  : " << binary_sum << " cycles" << endl;
+  cout << "TOTAL true ord: " << ordinary_sum << " cycles" << endl;
   using namespace reachability::blocks;
   constexpr auto lzt = merge_str({
     "XXXX  XXX ",
