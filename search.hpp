@@ -105,10 +105,8 @@ namespace reachability::search {
           constexpr auto index2 = block.mino_index[target];
           board_t temp = cache[i];
           static_for<kicks>([&][[gnu::always_inline]](auto k){
-            board_t moved = temp.template move<block.kicks[i][j][k]>();
-            board_t move_back = usable[index2].template move<-block.kicks[i][j][k]>();
-            to |= moved;
-            temp &= ~move_back;
+            to |= temp.template move<block.kicks[i][j][k]>();
+            temp &= ~usable[index2].template move<-block.kicks[i][j][k]>();
           });
           to &= usable[index2];
           auto old_cache = cache[target];
