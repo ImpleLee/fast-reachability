@@ -103,10 +103,14 @@ namespace reachability::search {
           constexpr int target = block.rotation_target(i, j);
           board_t to = cache[target];
           constexpr auto index2 = block.mino_index[target];
-          const auto kicks2 = kick_positions<block.kicks[i][j]>(usable[index], usable[index2]);
+          board_t temp = cache[i];
           static_for<kicks>([&][[gnu::always_inline]](auto k){
-            to |= (cache[i] & kicks2[k]).template move<block.kicks[i][j][k], false>();
+            board_t moved = temp.template move<block.kicks[i][j][k]>();
+            board_t move_back = usable[index2].template move<-block.kicks[i][j][k]>();
+            to |= moved;
+            temp &= ~move_back;
           });
+          to &= usable[index2];
           auto old_cache = cache[target];
           cache[target] = to;
           if (to != old_cache) {
