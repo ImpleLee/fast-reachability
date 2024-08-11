@@ -90,22 +90,30 @@ namespace reachability::search {
     }
     bool need_visit[orientations] = { }, skip_move[orientations] = { };
     std::array<board_t, orientations> cache;
-    if constexpr (is_same(block, SRS::T)) {
+    if constexpr (is_same(block, SRS::T) || is_same(block, SRS::L) || is_same(block, SRS::J)) {
       // exclude I because it can have 11 states per line
       // exclude O because it has only 1 orientation
       // process SZ for their extra offsets
+      // remove invalid points, e.g. JLSZ states with only 0 and 2 or 1 and 3 valid
+      board_t bad_points;
+      if constexpr (!is_same(block, SRS::T)) {
+        static_for<orientations/2>([&][[gnu::always_inline]](auto i) {
+          bad_points |= usable[i] & usable[(i + 2) % orientations] & ~usable[(i + 1) % orientations] & ~usable[(i + 3) % orientations];
+        });
+      }
       std::array<board_t, MOVES.size()> move_mask;
       static_for<MOVES.size()>([&][[gnu::always_inline]](auto i) {
-        static_for<shapes>([&][[gnu::always_inline]](auto j) {
-          move_mask[i] |= usable[j] & usable[j].template move<-MOVES[i]>();
+        static_for<orientations>([&][[gnu::always_inline]](auto j) {
+          board_t my_usable = usable[j] & ~bad_points;
+          move_mask[i] |= my_usable & my_usable.template move<-MOVES[i]>();
           // the mask should be applied after the move
         });
       });
       board_t shared_usable;
-      // remove invalid points, e.g. JLSZ states with only 0 and 2 or 1 and 3 valid
       static_for<shapes>([&][[gnu::always_inline]](auto i) {
         shared_usable |= usable[i];
       });
+      shared_usable &= ~bad_points;
       board_t shared_cache = fill_consecutively<start2>(shared_usable);
       while (true) {
         board_t result = shared_cache;
@@ -118,10 +126,11 @@ namespace reachability::search {
           break;
         }
       }
+      bool has_bad_point = bad_points.any();
       static_for<shapes>([&][[gnu::always_inline]](auto i) {
         cache[i] = shared_cache & usable[i];
         need_visit[i] = true;
-        skip_move[i] = true;
+        skip_move[i] = !has_bad_point;
       });
     } else {
       need_visit[init_rot] = true;
