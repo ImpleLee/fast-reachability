@@ -52,7 +52,6 @@ namespace reachability::search {
     static_for<shapes>([&][[gnu::always_inline]](auto i) {
       usable[i] = usable_positions<block.minos[i]>(data);
     });
-    constexpr std::array<coord, 3> MOVES = {{{-1, 0}, {1, 0}, {0, -1}}};
     constexpr coord start2 = start + block.mino_offset[init_rot];
     constexpr auto init_rot2 = block.mino_index[init_rot];
     if (!usable[init_rot2].template get<start2[0], start2[1]>()) [[unlikely]] {
@@ -89,10 +88,8 @@ namespace reachability::search {
         need_visit[i] = false;
         while (true) {
           board_t result = cache[i];
-          static_for<MOVES.size()>([&][[gnu::always_inline]](auto j) {
-            result |= cache[i].template move<MOVES[j]>();
-          });
-          result &= usable[index];
+          result |= cache[i].template move<coord{0, -1}>() & usable[index];
+          result |= fill_in_line(cache[i], usable[index]);
           if (result != cache[i]) [[likely]] {
             cache[i] = result;
           } else {

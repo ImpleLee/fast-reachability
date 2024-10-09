@@ -250,13 +250,32 @@ namespace reachability {
       return to_board(pre_result ^ one_bit<W - 1>());
     }
     constexpr board_t get_heads() const {
+      // ...01...
+      //     ^    head
       return (*this) & ~move<coord{-1, 0}>();
+    }
+    constexpr board_t get_tails() const {
+      // ...10...
+      //    ^     tail
+      return (*this) & ~move<coord{1, 0}>();
+    }
+    [[gnu::always_inline]]
+    friend constexpr board_t fill_in_line(board_t current, board_t possible) {
+      const auto heads = possible.get_heads().data;
+      const auto others = possible.data & ~heads;
+      const auto others_in_current = current.data & ~heads;
+      const auto is_used = (others_in_current + others) | current.data;
+      const auto tails = possible.get_tails().data;
+      const data_t tails_used {[=](auto i) {
+        return pdep<under_t>(pext<under_t>(is_used[i], heads[i]), tails[i]);
+      }};
+      return to_board(((is_used & heads) << 1) - tails_used);
     }
     friend constexpr board_t can_expand(board_t current, board_t possible) {
       const auto starts = possible & current.template move<coord{-1, 0}>();
       const auto ends = possible & current.template move<coord{1, 0}>();
-      const auto all_heads = possible.get_heads();
-      const auto heads = starts.data | (ends.data + (possible & ~all_heads).data);
+      const auto all_heads = possible.get_heads().data;
+      const auto heads = starts.data | (ends.data + (possible.data & ~all_heads));
       return to_board(heads);
     }
   private:
