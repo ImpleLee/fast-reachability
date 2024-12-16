@@ -26,22 +26,6 @@ namespace reachability::search {
     const auto indicator01 = usable.get_heads();
     return indicator01.has_single_bit();
   }
-  template <std::array kick, typename board_t>
-  [[gnu::always_inline]]
-  constexpr std::array<board_t, kick.size()>
-      kick_positions(board_t start, board_t end) {
-    constexpr std::size_t N = kick.size();
-    std::array<board_t, N> positions;
-    static_for<N>([&][[gnu::always_inline]](auto i) {
-      positions[i] = start & end.template move<-kick[i]>();
-    });
-    board_t temp = positions[0];
-    static_for<N-1>([&][[gnu::always_inline]](auto i) {
-      positions[i + 1] &= ~temp;
-      temp |= positions[i + 1];
-    });
-    return positions;
-  }
   template <block block, coord start, unsigned init_rot, typename board_t>
   constexpr std::array<board_t, block.SHAPES> binary_bfs(board_t data) {
     constexpr int orientations = block.ORIENTATIONS;
