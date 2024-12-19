@@ -97,7 +97,7 @@ namespace reachability::search {
           cache[target] = to;
           if (to != old_cache) {
             need_visit[target] = true;
-            if (target < i)
+            if constexpr (target < i)
               updated = true;
           }
         });
