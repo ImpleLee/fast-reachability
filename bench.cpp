@@ -12,7 +12,7 @@ double test(const BOARD &b, string_view name, char block) {
   using namespace reachability::blocks;
   printf("BOARD %s\n", name.data());
   printf(" BLOCK %c\n", block);
-  auto binary_time = bench<1000000>([](BOARD b, char block){ return binary_bfs<SRS, start, init_rot>(b, block); }, b, block);
+  auto binary_time = bench<100000000>([](BOARD b, char block){ return binary_bfs<SRS, start, init_rot>(b, block); }, b, block);
   printf("  binary  : %f cycles\n", binary_time);
   return binary_time;
 }
