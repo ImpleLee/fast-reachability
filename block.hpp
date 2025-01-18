@@ -37,18 +37,14 @@ namespace reachability::blocks {
   template <int block_per_mino, int orientations>
   struct pure_block {
     using mino = std::array<coord, block_per_mino>;
-    [[no_unique_address]]
     std::array<mino, orientations> minos;
   };
 
   template <int shapes, int block_per_mino, int orientations>
   struct block_with_offset {
     using mino = std::array<coord, block_per_mino>;
-    [[no_unique_address]]
     std::array<mino, shapes> minos;
-    [[no_unique_address]]
     std::array<int, orientations> mino_index;
-    [[no_unique_address]]
     std::array<coord, orientations> mino_offset;
   };
   template <int block_per_mino, int orientations>
@@ -78,7 +74,6 @@ namespace reachability::blocks {
   template <int orientations, int rotations, int kick_per_rotation>
   struct pure_kick {
     using kick = std::array<coord, kick_per_rotation>;
-    [[no_unique_address]]
     std::array<std::array<kick, rotations>, orientations> kicks;
   };
 
