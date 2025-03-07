@@ -60,6 +60,9 @@ namespace reachability {
     constexpr bool operator!=(board_t other) const {
       return any_of(data != other.data);
     }
+    constexpr bool contains(board_t other) const {
+      return all_of((other.data & ~data) == 0);
+    }
     constexpr board_t operator~() const {
       board_t other;
       other.data = mask_board() & ~data;
