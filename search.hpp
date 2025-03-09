@@ -72,7 +72,7 @@ namespace reachability::search {
         constexpr auto index = block.mino_index[i];
         need_visit[i] = false;
         while (true) {
-          board_t result;
+          board_t result = cache[i];
           static_for<MOVES.size()>([&][[gnu::always_inline]](auto j) {
             result |= cache[i].template move<MOVES[j]>();
           });
@@ -80,11 +80,11 @@ namespace reachability::search {
           if (cache[i].contains(result)) [[unlikely]] {
             break;
           }
-          cache[i] |= result;
+          cache[i] = result;
         }
         static_for<rotations>([&][[gnu::always_inline]](auto j){
           constexpr int target = block.rotation_target(i, j);
-          board_t to;
+          board_t to = cache[target];
           constexpr auto index2 = block.mino_index[target];
           board_t temp = cache[i];
           static_for<kicks>([&][[gnu::always_inline]](auto k){
@@ -97,7 +97,7 @@ namespace reachability::search {
             if constexpr (target < i)
               updated = true;
           }
-          cache[target] |= to;
+          cache[target] = to;
         });
       });
     }
