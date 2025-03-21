@@ -108,14 +108,14 @@ namespace reachability {
       } else if constexpr (dy > 0) {
         constexpr int pad = (dy - 1) / lines_per_under;
         constexpr int shift = (dy - 1) % lines_per_under + 1;
-        auto not_moved = my_shift<dx, shift>(my_split<pad, true>(data));
-        auto moved = my_shift<dx, shift-lines_per_under>(my_split<pad+1, true>(data));
+        auto not_moved = my_split<pad, true>(my_shift<dx, shift>(data));
+        auto moved = my_split<pad+1, true>(my_shift<dx, shift-lines_per_under>(data));
         data = (not_moved | moved) & mask_board();
       } else {
         constexpr int pad = (-dy - 1) / lines_per_under;
         constexpr int shift = (-dy - 1) % lines_per_under + 1;
-        auto not_moved = my_shift<dx, -shift>(my_split<pad, false>(data));
-        auto moved = my_shift<dx, lines_per_under-shift>(my_split<pad+1, false>(data));
+        auto not_moved = my_split<pad, false>(my_shift<dx, -shift>(data));
+        auto moved = my_split<pad+1, false>(my_shift<dx, lines_per_under-shift>(data));
         data = (not_moved | moved) & mask_board();
       }
       if constexpr (check && dx != 0) {
