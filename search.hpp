@@ -113,7 +113,7 @@ namespace reachability::search {
   }
   template <typename RS, coord start, unsigned init_rot=0, typename board_t>
   [[gnu::noinline]]
-  constexpr static_vector<board_t, 4> binary_bfs(board_t data, char b) {
+  constexpr static_vector<board_t, 4> binary_bfs(board_t data, block_type b) {
     return call_with_block<RS>(b, [=]<block B>() {
       auto ret = binary_bfs<B, start, init_rot>(data);
       return static_vector<board_t, 4>{std::span{ret}};
@@ -189,7 +189,7 @@ namespace reachability::search {
   }
   template <typename RS, typename board_t>
   [[gnu::noinline]]
-  constexpr static_vector<board_t, 4> ordinary_bfs_without_binary(board_t data, char b, const coord &start, unsigned init_rot=0) {
+  constexpr static_vector<board_t, 4> ordinary_bfs_without_binary(board_t data, block_type b, const coord &start, unsigned init_rot=0) {
     return call_with_block<RS>(b, [=]<block B>() {
       auto ret = ordinary_bfs_without_binary(data, B, start, init_rot);
       return static_vector<board_t, 4>{std::span{ret}};

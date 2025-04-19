@@ -7,7 +7,7 @@
 using namespace std;
 
 bool _ = ios::sync_with_stdio(false);
-template <reachability::block block, bool print=false, reachability::coord start=reachability::coord{4, 20}, unsigned init_rot=0>
+template <reachability::blocks::block block, bool print=false, reachability::coord start=reachability::coord{4, 20}, unsigned init_rot=0>
 array<double, 2> test(const BOARD &b, string_view name) {
   using namespace reachability::search;
   cout << "BOARD " << name << endl;
@@ -34,11 +34,11 @@ array<double, 2> test(const BOARD &b, string_view name) {
   return {binary_time, ordinary_time};
 }
 template <bool print=false, reachability::coord start=reachability::coord{4, 20}, unsigned init_rot=0>
-array<double, 2> test(const BOARD &b, string_view name, char block) {
+array<double, 2> test(const BOARD &b, string_view name, reachability::block_type block) {
   using namespace reachability::search;
   using namespace reachability::blocks;
   cout << "BOARD " << name << endl;
-  cout << " BLOCK " << block << endl;
+  cout << " BLOCK " << name_of(block) << endl;
   auto binary = binary_bfs<SRS, start, init_rot>(b, block);
   auto ordinary = ordinary_bfs_without_binary<SRS>(b, block, start, init_rot);
   if (binary.size() != ordinary.size()) {
@@ -63,8 +63,10 @@ array<double, 2> test(const BOARD &b, string_view name, char block) {
 }
 int main() {
   double binary_sum = 0, ordinary_sum = 0;
+  using enum reachability::block_type;
+  constexpr reachability::block_type blocks[] = {T, Z, S, J, L, O, I};
   for (size_t i = 0; i < board_names.size(); ++i) {
-    for (char block : "IJLOSTZ"sv) {
+    for (auto block : blocks) {
       auto [binary_time, ordinary_time] = test(boards[i], board_names[i], block);
       binary_sum += binary_time;
       ordinary_sum += ordinary_time;
