@@ -26,7 +26,7 @@ namespace reachability::search {
     const auto indicator01 = usable.get_heads();
     return indicator01.has_single_bit();
   }
-  template <block block, coord start, unsigned init_rot, typename board_t>
+  template <block block, coord start, std::size_t init_rot, typename board_t>
   constexpr std::array<board_t, block.SHAPES> binary_bfs(board_t data) {
     constexpr int orientations = block.ORIENTATIONS;
     constexpr int rotations = block.ROTATIONS;

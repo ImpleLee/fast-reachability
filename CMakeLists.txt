@@ -10,3 +10,7 @@ target_include_directories(Fast_Reachability INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:include>
 )
+add_executable(Fast_ReachabilityTest bench.cpp)
+
+
+set_property(TARGET Fast_ReachabilityTest PROPERTY CXX_STANDARD 23)

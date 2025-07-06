@@ -2,3 +2,5 @@
 /.cache/
 /compile_commands.json
 /.vscode/
+/.vs/
+/out/

@@ -24,42 +24,42 @@ namespace Shak {
         explicit constexpr stme() = default;
         
         template<my_epic_generator<N> Generator>
-        constexpr explicit stme(const Generator& gen) {
+        constexpr explicit stme(Generator gen) {
             static_for<N>([&](const auto i) {
                 data[i] = std::invoke(gen, i);
             });
         }
 
 
-        constexpr explicit stme( const std::integral auto& value ) noexcept{
+        constexpr explicit stme( std::integral auto value ) noexcept{
             static_for<N>([&](const auto i) {
                 data[i] = value;
             });
         }
 
         template< class U >
-        constexpr explicit stme( const stme<U, N>& other ) noexcept {
+        constexpr explicit stme( stme<U, N> other ) noexcept {
             static_for<N>([&](const auto i) {
                 data[i] = other[i];
             });
         }
 
-        constexpr explicit stme (const std::array<T, N>& other) noexcept {
+        constexpr explicit stme (std::array<T, N> other) noexcept {
             static_for<N>([&](const auto i) {
                 data[i] = other[i];
             });
         }
 
 
-        inline constexpr const T& operator[](auto i) const {
+        constexpr const T& operator[](auto i) const {
             return data[i];
         }
         
-        inline constexpr T& operator[](auto i) {
+        constexpr T& operator[](auto i) {
             return data[i];
         }
 
-        inline constexpr stme operator-(const stme& other) const {
+        constexpr stme operator-(stme other) const {
             stme ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] - other[i];
@@ -67,7 +67,7 @@ namespace Shak {
             return ret;
         }
         
-        inline constexpr stme operator+(const stme& other) const {
+        constexpr stme operator+(stme other) const {
             stme ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] + other[i];
@@ -75,7 +75,7 @@ namespace Shak {
             return ret;
         }
         
-        inline constexpr stme operator|(const stme& other) const {
+        constexpr stme operator|(stme other) const {
             stme ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] | other[i];
@@ -83,7 +83,7 @@ namespace Shak {
             return ret;
         }
         
-        inline constexpr stme operator&(const stme& other) const {
+        constexpr stme operator&(stme other) const {
             stme ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] & other[i];
@@ -91,7 +91,7 @@ namespace Shak {
             return ret;
         }
         
-        inline constexpr stme operator^(const stme& other) const {
+        constexpr stme operator^(stme other) const {
             stme ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] ^ other[i];
@@ -99,7 +99,7 @@ namespace Shak {
             return ret;
         }
 
-        inline constexpr stme operator>>(const std::integral auto& other) const {
+        constexpr stme operator>>(std::integral auto other) const {
             stme ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] >> other;
@@ -107,7 +107,7 @@ namespace Shak {
             return ret;
         }
 
-        inline constexpr void operator>>=(const stme& other) {
+        constexpr void operator>>=(stme other) {
             std::array<T,N> ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] >> other[i];
@@ -115,7 +115,7 @@ namespace Shak {
             data = ret;
         }
 
-        inline constexpr void operator>>=(const unsigned int& other) {
+        constexpr void operator>>=(unsigned int other) {
             std::array<T,N> ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] >> other;
@@ -123,7 +123,7 @@ namespace Shak {
             data = ret;
         }
         
-        inline constexpr void operator<<=(const stme& other) {
+        constexpr void operator<<=(stme other) {
             std::array<T,N> ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] << other[i];
@@ -131,7 +131,7 @@ namespace Shak {
             data = ret;
         }
 
-        inline constexpr void operator<<=(const unsigned int& other) {
+        constexpr void operator<<=(unsigned int other) {
             std::array<T,N> ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] << other;
@@ -139,7 +139,7 @@ namespace Shak {
             data = ret;
         }
 
-        inline constexpr stme operator==(const std::integral auto& other) const {
+        constexpr stme operator==(std::integral auto other) const {
             stme ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] == other;
@@ -147,7 +147,7 @@ namespace Shak {
             return ret;
         }
         
-        inline constexpr stme operator!=(const std::integral auto& other) const {
+        constexpr stme operator!=(std::integral auto other) const {
             stme ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] != other;
@@ -155,7 +155,7 @@ namespace Shak {
             return ret;
         }
         
-        inline constexpr stme operator!=(const stme&& other) const {
+        constexpr stme operator!=(stme other) const {
             stme ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] != other[i];
@@ -163,7 +163,7 @@ namespace Shak {
             return ret;
         }
 
-        inline constexpr void operator&=(const stme& other) {
+        constexpr void operator&=(stme other) {
             std::array<T,N> ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] & other[i];
@@ -171,7 +171,7 @@ namespace Shak {
             data = ret;
         }
         
-        inline constexpr void operator|=(const stme& other) {
+        constexpr void operator|=(stme other) {
             std::array<T,N> ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] | other[i];
@@ -179,7 +179,7 @@ namespace Shak {
             data = ret;
         }
 
-        inline constexpr stme operator~() const {
+        constexpr stme operator~() const {
             stme ret{data};
             static_for<N>([&](auto i) {
                 ret[i] = ~ret[i];
@@ -187,19 +187,19 @@ namespace Shak {
             return ret;
         }
 
-        inline constexpr auto begin() const {
+        constexpr auto begin() const {
             return data.begin();
         }
 
-        inline constexpr auto end() const {
+        constexpr auto end() const {
             return data.end();
         }
 
-        inline constexpr auto size() const {
+        constexpr auto size() const {
             return data.size();
         }
 
-        inline constexpr bool any_of() const {
+        constexpr bool any_of() const {
             T any{};
             static_for<N>([&](auto i) {
                 any |= data[i];
@@ -208,7 +208,7 @@ namespace Shak {
             return !!any;
         }
 
-        inline constexpr bool all_of() const {
+        constexpr bool all_of() const {
             T all = -1;
             static_for<N>([&](auto i) {
                 all &= data[i];
