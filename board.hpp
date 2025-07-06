@@ -7,7 +7,7 @@
 #include <type_traits>
 #include <cstdint>
 #include <bit>
-#include <experimental/simd>
+#include "stme.hpp"
 
 namespace reachability {
   template <unsigned W, unsigned H, typename under_t=std::uint64_t>
@@ -29,7 +29,7 @@ namespace reachability {
     static constexpr under_t last_mask = mask >> remaining_in_last;
     constexpr board_t() = default;
     constexpr board_t(std::string_view s): board_t(convert_to_array(s)) {}
-    constexpr board_t(std::array<under_t, num_of_under> d): data{d.data(), std::experimental::element_aligned} {}
+    constexpr board_t(std::array<under_t, num_of_under> d): data{d} {}
     static constexpr std::array<under_t, num_of_under> convert_to_array(std::string_view s) {
       std::array<under_t, num_of_under> data = {};
       for (std::size_t i = 0; i < last; ++i) {
@@ -40,6 +40,9 @@ namespace reachability {
     }
     template <int x, int y>
     constexpr void set() {
+      data[y / lines_per_under] |= under_t(1) << ((y % lines_per_under) * W + x);
+    }
+    constexpr void set(int x, int y) {
       data[y / lines_per_under] |= under_t(1) << ((y % lines_per_under) * W + x);
     }
     template <int x, int y>
@@ -58,10 +61,10 @@ namespace reachability {
       return *this != board_t{};
     }
     constexpr bool operator!=(board_t other) const {
-      return any_of(data != other.data);
+      return (data != other.data).any_of();
     }
     constexpr bool contains(board_t other) const {
-      return all_of((other.data & ~data) == 0);
+      return ((other.data & ~data) == 0).all_of();
     }
     constexpr board_t operator~() const {
       board_t other;
@@ -263,12 +266,13 @@ namespace reachability {
       return to_board(heads);
     }
   private:
+    //template <std::size_t N>
+    //using simd_of = std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, N>>;
+    using data_t = Shak::stme<under_t, num_of_under>;
+    //alignas(std::experimental::memory_alignment_v<data_t>) 
+    data_t data;
     template <std::size_t N>
-    using simd_of = std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, N>>;
-    using data_t = simd_of<num_of_under>;
-    alignas(std::experimental::memory_alignment_v<data_t>) data_t data = 0;
-    template <std::size_t N>
-    static constexpr simd_of<N> zero = {};
+    static constexpr data_t zero = {};
     static constexpr board_t to_board(data_t data) {
       board_t ret;
       ret.data = data;
@@ -314,7 +318,7 @@ namespace reachability {
       return data_t([=][[gnu::always_inline]](auto i) {
         constexpr size_t index = from_right ? i - removed : i + removed;
         if constexpr (index >= num_of_under) {
-          return 0;
+          return (under_t)0;
         } else {
           return data[index];
         }
