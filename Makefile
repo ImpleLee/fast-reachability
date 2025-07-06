@@ -1,6 +1,6 @@
 MAKEFLAGS += rR
 CC = g++
-LIB_FLAGS = -std=c++2b
+LIB_FLAGS = -std=c++23
 OPT_FLAGS = -O3 -march=native
 LINK_FLAGS = -flto=auto -g -gz
 EXTRA_FLAGS := $(EXTRA_FLAGS) -pipe -MMD -MP
