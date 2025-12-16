@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.23)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION, TRUE) 
 # need at least c++23 clang or whatever version of g++ is required for c++26/c++2b
 project(Fast_Reachability LANGUAGES CXX)
 
