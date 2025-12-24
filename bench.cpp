@@ -64,6 +64,7 @@ uint64_t perft(const BOARD &b, const char *block, unsigned depth) {
                 int py = y + (B.minos[B.mino_index[rot]][mino_i][1]) + B.mino_offset[rot][1];
                 new_board.set(px, py);
               });
+              new_board.clear_full_lines();
               n += perft(new_board, block+1, depth-1);
             }
           });

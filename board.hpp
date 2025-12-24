@@ -27,9 +27,13 @@ namespace reachability {
     static constexpr under_t mask = under_t(-1) >> remaining_per_under;
     static constexpr int remaining_in_last = num_of_under * used_bits_per_under - H * W;
     static constexpr under_t last_mask = mask >> remaining_in_last;
+    using data_t = Shak::stme<under_t, num_of_under>;
+
     constexpr board_t() = default;
     constexpr board_t(std::string_view s): board_t(convert_to_array(s)) {}
     constexpr board_t(std::array<under_t, num_of_under> d): data{d} {}
+    constexpr board_t(data_t d): data{d} {}
+
     static constexpr std::array<under_t, num_of_under> convert_to_array(std::string_view s) {
       std::array<under_t, num_of_under> data = {};
       for (std::size_t i = 0; i < last; ++i) {
@@ -97,6 +101,11 @@ namespace reachability {
       board_t result = *this;
       result ^= rhs;
       return result;
+    }
+    
+    template <std::integral auto N>
+    constexpr void right_shift() {
+      data >>= N;
     }
     template <coord d, bool check = true>
     constexpr void move_() {
@@ -183,7 +192,7 @@ namespace reachability {
       return ret;
     }
     constexpr int clear_full_lines() {
-      auto board = data;
+      board_t board = data;
       constexpr int needed = std::numeric_limits<decltype(W)>::digits - std::countl_zero(W) - 1;
       static_for<needed>([&][[gnu::always_inline]](auto i) {
         auto temp = board;
@@ -194,10 +203,10 @@ namespace reachability {
       temp.template right_shift<W - (1 << needed)>();
       board &= temp;
       int lines = 0;
-      const auto remove_range = [](board_t data, unsigned start, unsigned end) {
-        board_t below = data << (H * W - start);
+      const auto remove_range = [](board_t data, unsigned int start, unsigned int end) {
+        data_t below = data.data.operator<<(H * W - start);
         below >>= (H * W - start);
-        board_t above = data >> end;
+        data_t above = data.data >> end;
         above <<= start;
         return below | above;
       };
@@ -265,12 +274,19 @@ namespace reachability {
       const auto heads = starts.data | (ends.data + (possible & ~all_heads).data);
       return to_board(heads);
     }
+    constexpr int popcount() const {
+      int acc = 0;
+      auto tmp = data & mask_board();
+      static_for<num_of_under>([&][[gnu::always_inline]](auto i) {
+        acc += std::popcount(tmp[i]);
+      });
+      return acc;
+    }
   private:
     //template <std::size_t N>
     //using simd_of = std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, N>>;
-    using data_t = Shak::stme<under_t, num_of_under>;
     //alignas(std::experimental::memory_alignment_v<data_t>) 
-    data_t data;
+    [[no_unique_address]]data_t data;
     template <std::size_t N>
     static constexpr data_t zero = {};
     static constexpr board_t to_board(data_t data) {

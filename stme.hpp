@@ -22,7 +22,7 @@ namespace Shak {
     template<typename T, std::size_t N>
     struct stme {
         explicit constexpr stme() = default;
-        
+        public:
         template<my_epic_generator<N> Generator>
         constexpr explicit stme(Generator gen) {
             static_for<N>([&](const auto i) {
@@ -98,8 +98,16 @@ namespace Shak {
             });
             return ret;
         }
-
+        
         constexpr stme operator>>(std::integral auto other) const {
+            stme ret;
+            static_for<N>([&](auto i) {
+                ret[i] = data[i] >> other;
+            });
+            return ret;
+        }
+        template <std::integral auto other>
+        constexpr stme right_shift() const {
             stme ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] >> other;
@@ -115,7 +123,7 @@ namespace Shak {
             data = ret;
         }
 
-        constexpr void operator>>=(unsigned int other) {
+        constexpr void operator>>=(std::integral auto other) {
             std::array<T,N> ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] >> other;
@@ -131,12 +139,28 @@ namespace Shak {
             data = ret;
         }
 
-        constexpr void operator<<=(unsigned int other) {
+        constexpr void operator<<=(std::integral auto other) {
             std::array<T,N> ret;
             static_for<N>([&](auto i) {
                 ret[i] = data[i] << other;
             });
             data = ret;
+        }
+
+        constexpr stme operator<<(std::integral auto other) const {
+            stme ret;
+            static_for<N>([&](auto i) {
+                ret[i] = data[i] << other;
+            });
+            return ret;
+        }
+
+        stme operator<<(unsigned int other) {
+            stme ret;
+            static_for<N>([&](auto i) {
+                ret[i] = data[i] << other;
+            });
+            return ret;
         }
 
         constexpr stme operator==(std::integral auto other) const {
