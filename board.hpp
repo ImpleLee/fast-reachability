@@ -194,6 +194,10 @@ namespace reachability {
     constexpr int clear_full_lines() {
       board_t board = data;
       constexpr int needed = std::numeric_limits<decltype(W)>::digits - std::countl_zero(W) - 1;
+      constexpr under_t first_line = (under_t(1) << W) - 1;
+      constexpr under_t not_first_line = ~first_line & mask;
+      constexpr unsigned int distance_to_highest = (lines_per_under - 1) * W;
+
       static_for<needed>([&][[gnu::always_inline]](auto i) {
         auto temp = board;
         temp.template right_shift<1 << i>();
@@ -203,16 +207,34 @@ namespace reachability {
       temp.template right_shift<W - (1 << needed)>();
       board &= temp;
       int lines = 0;
-      const auto remove_range = [](board_t data, unsigned int start, unsigned int end) {
-        data_t below = data.data.operator<<(H * W - start);
-        below >>= (H * W - start);
-        data_t above = data.data >> end;
-        above <<= start;
-        return below | above;
+      const auto remove_range = [](board_t data, unsigned int line_num) {
+        // for general use
+        unsigned int first_under = line_num / lines_per_under;
+        constexpr unsigned int distance_to_highest = (lines_per_under - 1) * W;
+        // only for line_num
+        unsigned int line_num_distance_in_under = line_num % lines_per_under;
+        unsigned int line_num_distance_to_highest = (lines_per_under - 1 - line_num_distance_in_under) * W;
+        unsigned int line_num_under_mask = (under_t(1) << line_num_distance_in_under) - 1;
+        unsigned int line_num_above_mask = ~((under_t(1) << (line_num_distance_in_under + 1)) - 1) & mask;
+        data_t tmp_board = data.data;
+        
+        // first under_t needs to be handled specially by keeping everything under the line and masking everything above down by W
+        tmp_board[first_under] = (tmp_board[first_under] & line_num_under_mask) | ((tmp_board[first_under] & line_num_above_mask) >> W);
+        tmp_board[first_under] |= tmp_board[first_under + 1] & first_line << line_num_distance_to_highest;
+        tmp_board[first_under] &= mask;
+        // everything else
+        for (unsigned int i = first_under+1; i < num_of_under - 1; ++i) {
+          tmp_board[i] = (tmp_board[i] >> W) | ((tmp_board[i + 1] & first_line) << distance_to_highest);
+          tmp_board[i] &= mask;
+        }
+        // last under_t
+        tmp_board[num_of_under - 1] >>= W;
+        tmp_board[num_of_under - 1] &= mask;
+        return data_t{tmp_board};
       };
       static_for<H>([&][[gnu::always_inline]](auto y){
         if (board.template get<0, y>()) {
-          data = remove_range(data, (y - lines) * W, (y - lines + 1) * W);
+          data = remove_range(data, (y - lines));
           ++lines;
         }
       });
