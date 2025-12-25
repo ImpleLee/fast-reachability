@@ -7,6 +7,7 @@
 #include <type_traits>
 #include <cstdint>
 #include <bit>
+#include <climits>
 #include "stme.hpp"
 
 namespace reachability {
@@ -209,22 +210,30 @@ namespace reachability {
       int lines = 0;
       const auto remove_range = [](board_t data, unsigned int line_num) {
         // for general use
-        unsigned int first_under = line_num / lines_per_under;
-        constexpr unsigned int distance_to_highest = (lines_per_under - 1) * W;
+        under_t first_under = line_num / lines_per_under;
+        constexpr under_t distance_to_highest = (lines_per_under - 1) * W;
         // only for line_num
-        unsigned int line_num_distance_in_under = line_num % lines_per_under;
-        unsigned int line_num_distance_to_highest = (lines_per_under - 1 - line_num_distance_in_under) * W;
-        unsigned int line_num_under_mask = (under_t(1) << line_num_distance_in_under) - 1;
-        unsigned int line_num_above_mask = ~((under_t(1) << (line_num_distance_in_under + 1)) - 1) & mask;
+        under_t line_num_index_in_under = line_num % lines_per_under;
+        under_t line_num_under_mask = ((under_t(1) << (line_num_index_in_under*W))-under_t(1)) & mask;
+        under_t line_num_above_mask = (~((under_t(1) << ((line_num_index_in_under+1)*W)) - under_t(1))) & mask;
+        
+        // assert((line_num_index_in_under+remaining_per_under) < (sizeof(under_t)*CHAR_BIT));
+        // assert(((line_num_index_in_under+1)*W) < (sizeof(under_t)*CHAR_BIT));
+
         data_t tmp_board = data.data;
         
         // first under_t needs to be handled specially by keeping everything under the line and masking everything above down by W
-        tmp_board[first_under] = (tmp_board[first_under] & line_num_under_mask) | ((tmp_board[first_under] & line_num_above_mask) >> W);
-        tmp_board[first_under] |= tmp_board[first_under + 1] & first_line << line_num_distance_to_highest;
+        under_t below = tmp_board[first_under] & line_num_under_mask;
+        under_t above = (tmp_board[first_under] & line_num_above_mask) >> W;
+        
+        tmp_board[first_under] = below | above | (tmp_board[first_under + 1] & first_line << distance_to_highest);
         tmp_board[first_under] &= mask;
+        //tmp_board[first_under] = (tmp_board[first_under] & line_num_under_mask) | ((tmp_board[first_under] & line_num_above_mask) >> W);
+        //tmp_board[first_under] |= tmp_board[first_under + 1] & first_line << ((lines_per_under - 1)*W);
+        //tmp_board[first_under] &= mask;
         // everything else
         for (unsigned int i = first_under+1; i < num_of_under - 1; ++i) {
-          tmp_board[i] = (tmp_board[i] >> W) | ((tmp_board[i + 1] & first_line) << distance_to_highest);
+          tmp_board[i] = ((tmp_board[i] & not_first_line) >> W) | (tmp_board[i + 1] & first_line << distance_to_highest);
           tmp_board[i] &= mask;
         }
         // last under_t
