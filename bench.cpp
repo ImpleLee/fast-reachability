@@ -60,8 +60,8 @@ uint64_t perft(const BOARD &b, const char *block, unsigned depth) {
             if (reachable_board.template get<x,y>()) {
               BOARD new_board = b;
               reachability::static_for<B.BLOCK_PER_MINO>([&](const std::size_t mino_i) {
-                int px = x + (B.minos[B.mino_index[rot]][mino_i][0]) + B.mino_offset[rot][0];
-                int py = y + (B.minos[B.mino_index[rot]][mino_i][1]) + B.mino_offset[rot][1];
+                int px = x + B.minos[rot][mino_i][0];
+                int py = y + B.minos[rot][mino_i][1];
                 new_board.set(px, py);
               });
               new_board.clear_full_lines();
@@ -103,3 +103,4 @@ int main() {
               << " Time: " << dt << "ms"
               << " NPS: " << (nodes * 1000) / static_cast<uint64_t>(dt + 1) << std::endl;
 }
+
