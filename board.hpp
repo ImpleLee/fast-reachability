@@ -301,7 +301,7 @@ namespace reachability {
       }};
     }
     static constexpr board_t full_lines_of(int n) {
-      int full_unders = n / lines_per_under, remaining_filled_line = n % lines_per_under;
+      size_t full_unders = n / lines_per_under, remaining_filled_line = n % lines_per_under;
       return to_board(data_t{[=](auto i) -> under_t {
         if (i < full_unders) return mask;
         else if (i > full_unders) return 0;
