@@ -180,30 +180,21 @@ namespace reachability {
       return ret;
     }
     constexpr int clear_full_lines() {
-      auto board = data;
-      constexpr int needed = std::numeric_limits<decltype(W)>::digits - std::countl_zero(W) - 1;
-      static_for<needed>([&][[gnu::always_inline]](auto i) {
-        auto temp = board;
-        temp.template right_shift<1 << i>();
-        board &= temp;
-      });
-      auto temp = board;
-      temp.template right_shift<W - (1 << needed)>();
-      board &= temp;
+      auto is_full = all_bits();
       int lines = 0;
-      const auto remove_range = [](board_t data, unsigned start, unsigned end) {
-        board_t below = data << (H * W - start);
-        below >>= (H * W - start);
-        board_t above = data >> end;
-        above <<= start;
+      const auto remove_range = [](board_t board, unsigned start) {
+        auto below = board & full_lines_of(start);
+        auto above = board.move<coord{0, -1}>() & ~full_lines_of(start);
         return below | above;
       };
+      auto copied = *this;
       static_for<H>([&][[gnu::always_inline]](auto y){
-        if (board.template get<0, y>()) {
-          data = remove_range(data, (y - lines) * W, (y - lines + 1) * W);
+        if (is_full.template get<y>()) {
+          copied = remove_range(copied, y - lines);
           ++lines;
         }
       });
+      data = copied.data;
       return lines;
     }
     constexpr board_t has_single_bit() const {
@@ -308,6 +299,14 @@ namespace reachability {
           return mask;
         }
       }};
+    }
+    static constexpr board_t full_lines_of(int n) {
+      int full_unders = n / lines_per_under, remaining_filled_line = n % lines_per_under;
+      return to_board(data_t{[=](auto i) -> under_t {
+        if (i < full_unders) return mask;
+        else if (i > full_unders) return 0;
+        else return (under_t(1) << (W * remaining_filled_line)) - 1;
+      }});
     }
     template <int removed, bool from_right>
     static constexpr data_t my_split(data_t data) {
