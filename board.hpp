@@ -108,7 +108,7 @@ namespace reachability {
       return result;
     }
     template <std::array mino>
-    constexpr board_t put(this board_t b, int x, int y) {
+    static constexpr board_t put(int x, int y) {
       constexpr auto range = blocks::mino_range<mino>();
       constexpr int min_x = range[0];
       board_t shape;
@@ -119,7 +119,7 @@ namespace reachability {
         if (y / lines_per_under == i) shape.template move_<coord{0, (int(i) - 1) * lines_per_under}>();
       });
       shape.data <<= x + min_x;
-      return b | shape;
+      return shape;
     }
     
     template <std::integral auto N>

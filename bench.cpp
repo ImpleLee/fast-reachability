@@ -43,7 +43,7 @@ uint64_t perft(BOARD b, const char *block, unsigned depth) {
           int count = std::popcount(this_data);
           for (int k = 0; k < count; ++k) {
             [[assume(data[k] / 10 < 3 && data[k] / 10 >= 0)]];
-            BOARD new_board = b.put<mino>(data[k] % 10, data[k] / 10 + i * 6 + j * 3);
+            BOARD new_board = b | BOARD::put<mino>(data[k] % 10, data[k] / 10 + i * 6 + j * 3);
             n += perft(new_board.clear_full_lines().first, block+1, depth-1);
           }
         });
