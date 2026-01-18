@@ -44,8 +44,7 @@ uint64_t perft(BOARD b, const char *block, unsigned depth) {
           for (int k = 0; k < count; ++k) {
             [[assume(data[k] / 10 < 3 && data[k] / 10 >= 0)]];
             BOARD new_board = b.put<mino>(data[k] % 10, data[k] / 10 + i * 6 + j * 3);
-            new_board.clear_full_lines();
-            n += perft(new_board, block+1, depth-1);
+            n += perft(new_board.clear_full_lines().first, block+1, depth-1);
           }
         });
       });
