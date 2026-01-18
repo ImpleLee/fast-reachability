@@ -9,35 +9,51 @@
 #include <fstream>
 #include <cassert>
 #include "bench.hpp"
+#include <immintrin.h>
 using namespace std;
 
 uint64_t perft(BOARD b, const char *block, unsigned depth) {
-    uint64_t nodes = 0;
-    auto reachable = reachability::search::binary_bfs<reachability::blocks::SRS, reachability::coord{4,20}, 0uz>(b,*block);
-    if (depth == 1) {
-        for(std::size_t rot = 0; rot < reachable.size(); ++rot)
-            nodes += reachable[rot].popcount();
-        return nodes;
+  const __m256i incremental_bytes = []{
+    /* Compiler optimizes this into an initialized array in .rodata. */
+    alignas(64) char data[sizeof(__m256i)];
+    for (unsigned i = 0; i < sizeof(data); i++) {
+        data[i] = i;
     }
-    
-    nodes += reachability::blocks::call_with_block<reachability::blocks::SRS>(*block, [&]<reachability::block B>(){
-      uint64_t n = 0;
-      reachability::static_for<B.SHAPES>([&](auto rot) {
-        constexpr auto mino = B.minos[rot];
-        reachability::static_for<BOARD::height>([&](auto y) {
-          reachability::static_for<BOARD::width>([&](auto x) {
-            if (reachable[rot].template get<x, y>()) {
-              BOARD new_board = b.put<mino>(x, y);
-              new_board.clear_full_lines();
-              n += perft(new_board, block+1, depth-1);
-            }
-          });
+    return _mm256_load_si256((__m256i*)data);
+  }();
+  uint64_t nodes = 0;
+  auto reachable = reachability::search::binary_bfs<reachability::blocks::SRS, reachability::coord{4,20}>(b,*block);
+  if (depth == 1) {
+      for(std::size_t rot = 0; rot < reachable.size(); ++rot)
+          nodes += reachable[rot].popcount();
+      return nodes;
+  }
+
+  nodes += reachability::blocks::call_with_block<reachability::blocks::SRS>(*block, [&]<reachability::block B>(){
+    uint64_t n = 0;
+    reachability::static_for<B.SHAPES>([&](auto rot) {
+      constexpr auto mino = B.minos[rot];
+      reachability::static_for<BOARD::num_of_under>([&](auto i) {
+        uint64_t data_i = reachable[rot].data[i];
+        reachability::static_for<BOARD::under_bits / 32>([&](auto j) {
+          uint32_t this_data = data_i >> (j * 30);
+          this_data &= (~uint32_t(0)) >> 2;
+          __m256i usable_positions = _mm256_maskz_compress_epi8(this_data, incremental_bytes);
+          uint8_t *data = reinterpret_cast<uint8_t*>(&usable_positions);
+          int count = std::popcount(this_data);
+          for (int k = 0; k < count; ++k) {
+            [[assume(data[k] / 10 < 3 && data[k] / 10 >= 0)]];
+            BOARD new_board = b.put<mino>(data[k] % 10, data[k] / 10 + i * 6 + j * 3);
+            new_board.clear_full_lines();
+            n += perft(new_board, block+1, depth-1);
+          }
         });
       });
-      return n;
     });
+    return n;
+  });
 
-    return nodes;
+  return nodes;
 }
 
 int main(int argc, char *argv[]) {
