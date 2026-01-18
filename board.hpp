@@ -95,6 +95,20 @@ namespace reachability {
       result ^= rhs;
       return result;
     }
+    template <std::array mino>
+    constexpr board_t put(this board_t b, int x, int y) {
+      constexpr auto range = blocks::mino_range<mino>();
+      constexpr int min_x = range[0];
+      board_t shape;
+      static_for<lines_per_under>([&](auto i) {
+        if (y % lines_per_under == i) shape = shape_at_y<mino, i>();
+      });
+      static_for<num_of_under>([&](auto i) {
+        if (y / lines_per_under == i) shape.template move_<coord{0, (int(i) - 1) * lines_per_under}>();
+      });
+      shape.data <<= x + min_x;
+      return b | shape;
+    }
     template <coord d, bool check = true>
     constexpr void move_() {
       constexpr int dx = d[0], dy = d[1];
@@ -343,6 +357,20 @@ namespace reachability {
           res += 1;
       }
       return res;
+    }
+    template <std::array mino>
+    static constexpr board_t standard_shape() {
+      auto [min_x, min_y, max_x, max_y] = blocks::mino_range<mino>();
+      board_t b;
+      for (auto [x, y] : mino) {
+        b.set(x - min_x, y - min_y);
+      }
+      return b;
+    }
+    template <std::array mino, int y>
+    static constexpr board_t shape_at_y() {
+      constexpr auto range = blocks::mino_range<mino>();
+      return standard_shape<mino>().template move<coord{0, y + range[1] + lines_per_under}>();
     }
   };
 }
