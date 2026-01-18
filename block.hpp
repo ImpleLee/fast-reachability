@@ -34,6 +34,20 @@ namespace reachability {
   };
 }
 namespace reachability::blocks {
+  template <std::array mino>
+  constexpr std::array<int, 4> mino_range() {
+    static_assert(mino.size() >= 1);
+    auto [min_x, min_y] = mino[0];
+    auto [max_x, max_y] = mino[0];
+    for (auto [x, y] : mino) {
+      if (x < min_x) min_x = x;
+      if (x > max_x) max_x = x;
+      if (y < min_y) min_y = y;
+      if (y > max_y) max_y = y;
+    }
+    return {min_x, min_y, max_x, max_y};
+  }
+
   template <int block_per_mino, int orientations>
   struct pure_block {
     using mino = std::array<coord, block_per_mino>;

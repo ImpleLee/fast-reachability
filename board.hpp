@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <bit>
 #include <climits>
-#include "stme.hpp"
+#include <experimental/simd>
 
 namespace reachability {
   template <unsigned W, unsigned H, typename under_t=std::uint64_t>
@@ -28,12 +28,10 @@ namespace reachability {
     static constexpr under_t mask = under_t(-1) >> remaining_per_under;
     static constexpr int remaining_in_last = num_of_under * used_bits_per_under - H * W;
     static constexpr under_t last_mask = mask >> remaining_in_last;
-    using data_t = Shak::stme<under_t, num_of_under>;
 
     constexpr board_t() = default;
     constexpr board_t(std::string_view s): board_t(convert_to_array(s)) {}
-    constexpr board_t(std::array<under_t, num_of_under> d): data{d} {}
-    constexpr board_t(data_t d): data{d} {}
+    constexpr board_t(std::array<under_t, num_of_under> d): data{d.data(), std::experimental::element_aligned} {}
 
     static constexpr std::array<under_t, num_of_under> convert_to_array(std::string_view s) {
       std::array<under_t, num_of_under> data = {};
@@ -62,14 +60,20 @@ namespace reachability {
       // use highest bit as the result
       return get<W - 1, y>();
     }
+    constexpr int get(int x, int y) const {
+      if ((x < 0) || (x >= W) || (y < 0) || (y >= H)) {
+        return 2;
+      }
+      return data[y / lines_per_under] & (under_t(1) << ((y % lines_per_under) * W + x)) ? 1 : 0;
+    }
     constexpr bool any() const {
       return *this != board_t{};
     }
     constexpr bool operator!=(board_t other) const {
-      return (data != other.data).any_of();
+      return any_of(data != other.data);
     }
     constexpr bool contains(board_t other) const {
-      return ((other.data & ~data) == 0).all_of();
+      return all_of((other.data & ~data) == under_t(0));
     }
     constexpr board_t operator~() const {
       board_t other;
@@ -102,6 +106,20 @@ namespace reachability {
       board_t result = *this;
       result ^= rhs;
       return result;
+    }
+    template <std::array mino>
+    constexpr board_t put(this board_t b, int x, int y) {
+      constexpr auto range = blocks::mino_range<mino>();
+      constexpr int min_x = range[0];
+      board_t shape;
+      static_for<lines_per_under>([&](auto i) {
+        if (y % lines_per_under == i) shape = shape_at_y<mino, i>();
+      });
+      static_for<num_of_under>([&](auto i) {
+        if (y / lines_per_under == i) shape.template move_<coord{0, (int(i) - 1) * lines_per_under}>();
+      });
+      shape.data <<= x + min_x;
+      return b | shape;
     }
     
     template <std::integral auto N>
@@ -144,11 +162,11 @@ namespace reachability {
     friend constexpr std::string to_string(board_t board) {
       std::string ret;
       static_for<H>([&][[gnu::always_inline]](auto y) {
-        std::string this_ret;
+        std::string this_ret = "|";
         static_for<W>([&][[gnu::always_inline]](auto x) {
           this_ret += board.get<x, y>() ? "[]" : "  ";
         });
-        this_ret += '\n';
+        this_ret += "|\n";
         ret = this_ret + ret;
       });
       return ret;
@@ -193,60 +211,21 @@ namespace reachability {
       return ret;
     }
     constexpr int clear_full_lines() {
-      board_t board = data;
-      constexpr int needed = std::numeric_limits<decltype(W)>::digits - std::countl_zero(W) - 1;
-      constexpr under_t first_line = (under_t(1) << W) - 1;
-      constexpr under_t not_first_line = ~first_line & mask;
-      constexpr unsigned int distance_to_highest = (lines_per_under - 1) * W;
-
-      static_for<needed>([&][[gnu::always_inline]](auto i) {
-        auto temp = board;
-        temp.template right_shift<1 << i>();
-        board &= temp;
-      });
-      auto temp = board;
-      temp.template right_shift<W - (1 << needed)>();
-      board &= temp;
+      auto is_full = all_bits();
       int lines = 0;
-      const auto remove_range = [](board_t data, unsigned int line_num) {
-        // for general use
-        under_t first_under = line_num / lines_per_under;
-        constexpr under_t distance_to_highest = (lines_per_under - 1) * W;
-        // only for line_num
-        under_t line_num_index_in_under = line_num % lines_per_under;
-        under_t line_num_under_mask = ((under_t(1) << (line_num_index_in_under*W))-under_t(1)) & mask;
-        under_t line_num_above_mask = (~((under_t(1) << ((line_num_index_in_under+1)*W)) - under_t(1))) & mask;
-        
-        // assert((line_num_index_in_under+remaining_per_under) < (sizeof(under_t)*CHAR_BIT));
-        // assert(((line_num_index_in_under+1)*W) < (sizeof(under_t)*CHAR_BIT));
-
-        data_t tmp_board = data.data;
-        
-        // first under_t needs to be handled specially by keeping everything under the line and masking everything above down by W
-        under_t below = tmp_board[first_under] & line_num_under_mask;
-        under_t above = (tmp_board[first_under] & line_num_above_mask) >> W;
-        
-        tmp_board[first_under] = below | above | (tmp_board[first_under + 1] & first_line << distance_to_highest);
-        tmp_board[first_under] &= mask;
-        //tmp_board[first_under] = (tmp_board[first_under] & line_num_under_mask) | ((tmp_board[first_under] & line_num_above_mask) >> W);
-        //tmp_board[first_under] |= tmp_board[first_under + 1] & first_line << ((lines_per_under - 1)*W);
-        //tmp_board[first_under] &= mask;
-        // everything else
-        for (unsigned int i = first_under+1; i < num_of_under - 1; ++i) {
-          tmp_board[i] = ((tmp_board[i] & not_first_line) >> W) | (tmp_board[i + 1] & first_line << distance_to_highest);
-          tmp_board[i] &= mask;
-        }
-        // last under_t
-        tmp_board[num_of_under - 1] >>= W;
-        tmp_board[num_of_under - 1] &= mask;
-        return data_t{tmp_board};
+      const auto remove_range = [](board_t board, unsigned start) {
+        auto below = board & full_lines_of(start);
+        auto above = board.move<coord{0, -1}>() & ~full_lines_of(start);
+        return below | above;
       };
+      auto copied = *this;
       static_for<H>([&][[gnu::always_inline]](auto y){
-        if (board.template get<0, y>()) {
-          data = remove_range(data, (y - lines));
+        if (is_full.template get<y>()) {
+          copied = remove_range(copied, y - lines);
           ++lines;
         }
       });
+      data = copied.data;
       return lines;
     }
     constexpr board_t has_single_bit() const {
@@ -307,19 +286,18 @@ namespace reachability {
     }
     constexpr int popcount() const {
       int acc = 0;
-      auto tmp = data & mask_board();
       static_for<num_of_under>([&][[gnu::always_inline]](auto i) {
-        acc += std::popcount(tmp[i]);
+        acc += std::popcount(data[i]);
       });
       return acc;
     }
-  private:
-    //template <std::size_t N>
-    //using simd_of = std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, N>>;
-    //alignas(std::experimental::memory_alignment_v<data_t>) 
-    [[no_unique_address]]data_t data;
+  public:
     template <std::size_t N>
-    static constexpr data_t zero = {};
+    using simd_of = std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, N>>;
+    using data_t = simd_of<num_of_under>;
+    alignas(std::experimental::memory_alignment_v<data_t>) data_t data = 0;
+    template <std::size_t N>
+    static constexpr simd_of<N> zero = {};
     static constexpr board_t to_board(data_t data) {
       board_t ret;
       ret.data = data;
@@ -360,6 +338,14 @@ namespace reachability {
         }
       }};
     }
+    static constexpr board_t full_lines_of(int n) {
+      size_t full_unders = n / lines_per_under, remaining_filled_line = n % lines_per_under;
+      return to_board(data_t{[=](auto i) -> under_t {
+        if (i < full_unders) return mask;
+        else if (i > full_unders) return 0;
+        else return (under_t(1) << (W * remaining_filled_line)) - 1;
+      }});
+    }
     template <int removed, bool from_right>
     static constexpr data_t my_split(data_t data) {
       return data_t([=][[gnu::always_inline]](auto i) {
@@ -395,6 +381,22 @@ namespace reachability {
           res += 1;
       }
       return res;
+    }
+    template <std::array mino>
+    static constexpr board_t standard_shape() {
+      auto [min_x, min_y, max_x, max_y] = blocks::mino_range<mino>();
+      board_t b;
+      for (auto [x, y] : mino) {
+        x -= min_x;
+        y -= min_y;
+        b.set(x, y);
+      }
+      return b;
+    }
+    template <std::array mino, int y>
+    static constexpr board_t shape_at_y() {
+      constexpr auto range = blocks::mino_range<mino>();
+      return standard_shape<mino>().template move<coord{0, y + range[1] + lines_per_under}>();
     }
   };
 }
