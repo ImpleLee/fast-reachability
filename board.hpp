@@ -111,20 +111,12 @@ namespace reachability {
     static constexpr board_t put(int x, int y) {
       constexpr auto range = blocks::mino_range<mino>();
       constexpr int min_x = range[0];
-      board_t shape;
-      static_for<lines_per_under>([&](auto i) {
-        if (y % lines_per_under == i) shape = shape_at_y<mino, i>();
-      });
+      board_t shape = shapes<mino>[y % lines_per_under];
       static_for<num_of_under>([&](auto i) {
         if (y / lines_per_under == i) shape.template move_<coord{0, (int(i) - 1) * lines_per_under}>();
       });
       shape.data <<= x + min_x;
       return shape;
-    }
-    
-    template <std::integral auto N>
-    constexpr void right_shift() {
-      data >>= N;
     }
     template <coord d, bool check = true>
     constexpr void move_() {
@@ -397,5 +389,11 @@ namespace reachability {
       constexpr auto range = blocks::mino_range<mino>();
       return standard_shape<mino>().template move<coord{0, y + range[1] + lines_per_under}>();
     }
+    template <std::array mino>
+    inline static std::array<board_t, lines_per_under> shapes = []{
+      std::array<board_t, lines_per_under> shapes;
+      static_for<lines_per_under>([&](auto i) { shapes[i].data = shape_at_y<mino, i>().data; });
+      return shapes;
+    }();
   };
 }

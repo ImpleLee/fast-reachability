@@ -21,16 +21,15 @@ uint64_t perft(BOARD b, const char *block, unsigned depth) {
     }
     return _mm256_load_si256((__m256i*)data);
   }();
-  uint64_t nodes = 0;
-  auto reachable = reachability::search::binary_bfs<reachability::blocks::SRS, reachability::coord{4,20}>(b,*block);
-  if (depth == 1) {
-      for(std::size_t rot = 0; rot < reachable.size(); ++rot)
-          nodes += reachable[rot].popcount();
-      return nodes;
-  }
 
-  nodes += reachability::blocks::call_with_block<reachability::blocks::SRS>(*block, [&]<reachability::block B>(){
+  return reachability::blocks::call_with_block<reachability::blocks::SRS>(*block, [&]<reachability::block B>(){
+    auto reachable = reachability::search::binary_bfs<B, reachability::coord{4,20}, 0>(b);
     uint64_t n = 0;
+    if (depth == 1) {
+      for (std::size_t rot = 0; rot < reachable.size(); ++rot)
+        n += reachable[rot].popcount();
+      return n;
+    }
     reachability::static_for<B.SHAPES>([&](auto rot) {
       constexpr auto mino = B.minos[rot];
       reachability::static_for<BOARD::num_of_under>([&](auto i) {
@@ -51,8 +50,6 @@ uint64_t perft(BOARD b, const char *block, unsigned depth) {
     });
     return n;
   });
-
-  return nodes;
 }
 
 int main(int argc, char *argv[]) {

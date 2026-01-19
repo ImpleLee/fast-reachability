@@ -112,7 +112,6 @@ namespace reachability::search {
     return ret;
   }
   template <typename RS, coord start, unsigned init_rot=0, typename board_t>
-  [[gnu::noinline]]
   constexpr static_vector<board_t, 4> binary_bfs(board_t data, char b) {
     return call_with_block<RS>(b, [=]<block B>() {
       auto ret = binary_bfs<B, start, init_rot>(data);
