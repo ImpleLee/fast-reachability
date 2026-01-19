@@ -42,9 +42,6 @@ namespace reachability {
 #else
       data{d.data(), std::experimental::element_aligned} {}
 #endif
-#ifdef USE_STME
-    constexpr board_t(const board_t &) = default;
-#endif
 
     static constexpr std::array<under_t, num_of_under> convert_to_array(std::string_view s) {
       std::array<under_t, num_of_under> data = {};
