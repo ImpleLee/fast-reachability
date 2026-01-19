@@ -1,5 +1,5 @@
 MAKEFLAGS += rR
-CC = g++
+CC = clang++
 LIB_FLAGS = -std=c++2b
 OPT_FLAGS = -O3 -march=native
 LINK_FLAGS = -flto=auto -g -gz
