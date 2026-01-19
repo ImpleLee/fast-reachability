@@ -61,7 +61,7 @@ namespace reachability {
       return get<W - 1, y>();
     }
     constexpr int get(int x, int y) const {
-      if ((x < 0) || (x >= W) || (y < 0) || (y >= H)) {
+      if ((x < 0) || (x >= int(W)) || (y < 0) || (y >= int(H))) {
         return 2;
       }
       return data[y / lines_per_under] & (under_t(1) << ((y % lines_per_under) * W + x)) ? 1 : 0;
@@ -282,7 +282,17 @@ namespace reachability {
       });
       return acc;
     }
-  public:
+    template <class F>
+    void for_each_bit(F &&f) const {
+      reachability::static_for<num_of_under>([&][[gnu::always_inline]](auto i) {
+        for (uint64_t data_i = data[i]; data_i; data_i &= data_i - 1) {
+          int pos = std::countr_zero(data_i);
+          [[assume(pos / W < lines_per_under && pos / W >= 0)]];
+          f(pos % W, pos / W + i * lines_per_under);
+        }
+      });
+    }
+  private:
     template <std::size_t N>
     using simd_of = std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, N>>;
     using data_t = simd_of<num_of_under>;

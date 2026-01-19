@@ -1,27 +1,16 @@
 #include "block.hpp"
 #include "search.hpp"
 #include "utils.hpp"
-#include <string_view>
+#include "board.hpp"
 #include <cstdio>
-#include <cmath>
-#include <span>
 #include <iostream>
-#include <fstream>
 #include <cassert>
-#include "bench.hpp"
-#include <immintrin.h>
+#include <chrono>
 using namespace std;
 
-uint64_t perft(BOARD b, const char *block, unsigned depth) {
-  const __m256i incremental_bytes = []{
-    /* Compiler optimizes this into an initialized array in .rodata. */
-    alignas(64) char data[sizeof(__m256i)];
-    for (unsigned i = 0; i < sizeof(data); i++) {
-        data[i] = i;
-    }
-    return _mm256_load_si256((__m256i*)data);
-  }();
+using BOARD = reachability::board_t<10, 24>;
 
+uint64_t perft(BOARD b, const char *block, unsigned depth) {
   return reachability::blocks::call_with_block<reachability::blocks::SRS>(*block, [&]<reachability::block B>(){
     auto reachable = reachability::search::binary_bfs<B, reachability::coord{4,20}, 0>(b);
     uint64_t n = 0;
@@ -32,20 +21,9 @@ uint64_t perft(BOARD b, const char *block, unsigned depth) {
     }
     reachability::static_for<B.SHAPES>([&](auto rot) {
       constexpr auto mino = B.minos[rot];
-      reachability::static_for<BOARD::num_of_under>([&](auto i) {
-        uint64_t data_i = reachable[rot].data[i];
-        reachability::static_for<BOARD::under_bits / 32>([&](auto j) {
-          uint32_t this_data = data_i >> (j * 30);
-          this_data &= (~uint32_t(0)) >> 2;
-          __m256i usable_positions = _mm256_maskz_compress_epi8(this_data, incremental_bytes);
-          uint8_t *data = reinterpret_cast<uint8_t*>(&usable_positions);
-          int count = std::popcount(this_data);
-          for (int k = 0; k < count; ++k) {
-            [[assume(data[k] / 10 < 3 && data[k] / 10 >= 0)]];
-            BOARD new_board = b | BOARD::put<mino>(data[k] % 10, data[k] / 10 + i * 6 + j * 3);
-            n += perft(new_board.clear_full_lines().first, block+1, depth-1);
-          }
-        });
+      reachable[rot].for_each_bit([&](int x, int y) {
+        BOARD new_board = b | BOARD::put<mino>(x, y);
+        n += perft(new_board.clear_full_lines().first, block+1, depth-1);
       });
     });
     return n;
@@ -53,6 +31,7 @@ uint64_t perft(BOARD b, const char *block, unsigned depth) {
 }
 
 int main(int argc, char *argv[]) {
+    assert(argc == 2);
     BOARD state;
     const auto start = std::chrono::high_resolution_clock::now();
 
