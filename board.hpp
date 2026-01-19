@@ -193,7 +193,7 @@ namespace reachability {
       });
       return ret;
     }
-    constexpr int clear_full_lines() {
+    constexpr auto clear_full_lines() const {
       auto is_full = all_bits();
       int lines = 0;
       const auto remove_range = [](board_t board, unsigned start) {
@@ -208,8 +208,7 @@ namespace reachability {
           ++lines;
         }
       });
-      data = copied.data;
-      return lines;
+      return std::pair{copied, lines};
     }
     constexpr board_t has_single_bit() const {
       auto saturated = data | one_bit<W - 1>();
