@@ -3,12 +3,17 @@
 #include "utils.hpp"
 #include <limits>
 #include <string_view>
+#include <string>
 #include <array>
 #include <type_traits>
 #include <cstdint>
 #include <bit>
 #include <climits>
+#ifdef USE_STME
+#include "stme.hpp"
+#else
 #include <experimental/simd>
+#endif
 
 namespace reachability {
   template <unsigned W, unsigned H, typename under_t=std::uint64_t>
@@ -31,7 +36,15 @@ namespace reachability {
 
     constexpr board_t() = default;
     constexpr board_t(std::string_view s): board_t(convert_to_array(s)) {}
-    constexpr board_t(std::array<under_t, num_of_under> d): data{d.data(), std::experimental::element_aligned} {}
+    constexpr board_t(std::array<under_t, num_of_under> d):
+#ifdef USE_STME
+      data{d} {}
+#else
+      data{d.data(), std::experimental::element_aligned} {}
+#endif
+#ifdef USE_STME
+    constexpr board_t(const board_t &) = default;
+#endif
 
     static constexpr std::array<under_t, num_of_under> convert_to_array(std::string_view s) {
       std::array<under_t, num_of_under> data = {};
@@ -70,10 +83,18 @@ namespace reachability {
       return *this != board_t{};
     }
     constexpr bool operator!=(board_t other) const {
+#ifdef USE_STME
+      return (data != other.data).any_of();
+#else
       return any_of(data != other.data);
+#endif
     }
     constexpr bool contains(board_t other) const {
+#ifdef USE_STME
+      return ((other.data & ~data) == under_t(0)).all_of();
+#else
       return all_of((other.data & ~data) == under_t(0));
+#endif
     }
     constexpr board_t operator~() const {
       board_t other;
@@ -294,11 +315,28 @@ namespace reachability {
     }
   private:
     template <std::size_t N>
-    using simd_of = std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, N>>;
+    using simd_of =
+#ifdef USE_STME
+      Shak::stme<under_t, N>
+#else
+      std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, N>>
+#endif
+    ;
     using data_t = simd_of<num_of_under>;
-    alignas(std::experimental::memory_alignment_v<data_t>) data_t data = 0;
+#ifdef USE_STME
+    [[no_unique_address]]
+#else
+    alignas(std::experimental::memory_alignment_v<data_t>)
+#endif
+      data_t data{0};
     template <std::size_t N>
-    static constexpr simd_of<N> zero = {};
+    static constexpr
+#ifdef USE_STME
+    data_t
+#else
+    simd_of<N>
+#endif
+    zero = {};
     static constexpr board_t to_board(data_t data) {
       board_t ret;
       ret.data = data;

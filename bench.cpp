@@ -6,6 +6,7 @@
 #include <iostream>
 #include <cassert>
 #include <chrono>
+#include <cstring>
 using namespace std;
 
 using BOARD = reachability::board_t<10, 24>;
