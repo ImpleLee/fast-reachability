@@ -7,8 +7,11 @@
 #include <type_traits>
 #include <cstdint>
 #include <bit>
-#include <climits>
+#ifdef USE_NEW_SIMD
+#include "include/simd"
+#else
 #include <experimental/simd>
+#endif
 
 namespace reachability {
   template <unsigned W, unsigned H, typename under_t=std::uint64_t>
@@ -31,7 +34,13 @@ namespace reachability {
 
     constexpr board_t() = default;
     constexpr board_t(std::string_view s): board_t(convert_to_array(s)) {}
-    constexpr board_t(std::array<under_t, num_of_under> d): data{d.data(), std::experimental::element_aligned} {}
+    constexpr board_t(std::array<under_t, num_of_under> d): data{d.data(),
+#ifdef USE_NEW_SIMD
+    std::datapar::flag_default
+#else
+    std::experimental::element_aligned
+#endif
+    } {}
 
     static constexpr std::array<under_t, num_of_under> convert_to_array(std::string_view s) {
       std::array<under_t, num_of_under> data = {};
@@ -43,10 +52,12 @@ namespace reachability {
     }
     template <int x, int y>
     constexpr void set() {
-      data[y / lines_per_under] |= under_t(1) << ((y % lines_per_under) * W + x);
+      const auto value = initialize_as(y / lines_per_under, under_t(1) << ((y % lines_per_under) * W + x));
+      data |= value;
     }
     constexpr void set(int x, int y) {
-      data[y / lines_per_under] |= under_t(1) << ((y % lines_per_under) * W + x);
+      const auto value = initialize_as(y / lines_per_under, under_t(1) << ((y % lines_per_under) * W + x));
+      data |= value;
     }
     template <int x, int y>
     constexpr int get() const {
@@ -242,21 +253,23 @@ namespace reachability {
     }
     constexpr board_t remove_ones_after_zero() const {
       auto board = data | ~mask_board();
-      std::array<int, num_of_under> ones;
-      static_for<num_of_under>([&][[gnu::always_inline]](auto i) {
-        ones[i] = std::countl_one(under_t(board[i]));
-      });
-      bool found = false;
-      #pragma unroll num_of_under
-      for (int i = num_of_under - 1; i >= 0; --i) {
-        if (found) {
-          board[i] = 0;
-        } else if (ones[i] < std::numeric_limits<under_t>::digits) {
-          found = true;
-          board[i] &= ~((~under_t(0)) >> ones[i]);
-        }
-      }
-      return to_board(board & mask_board());
+      auto bad = !(board == data_t{under_t(-1)});
+      if (!any_of(bad)) return *this;
+      std::size_t bad_index =
+#ifdef USE_NEW_SIMD
+      reduce_max_index(bad)
+#else
+      find_last_set(bad)
+#endif
+      ;
+      const auto get_mask = [](under_t i) {
+        return ~((~under_t(0)) >> std::countl_one(i));
+      };
+      return to_board(mask_board() & data_t{[&][[gnu::always_inline]](auto i) -> under_t {
+        if (i < bad_index) return 0;
+        else if (i == bad_index) return board[i] & get_mask(board[i]);
+        else return board[i];
+      }});
     }
     constexpr board_t populate_highest_bit() const {
       // result is in highest bit (0 or 1), other bits are 0
@@ -293,10 +306,15 @@ namespace reachability {
       });
     }
   private:
-    template <std::size_t N>
-    using simd_of = std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, N>>;
+    template <std::size_t N> using simd_of =
+#ifdef USE_NEW_SIMD
+    std::datapar::simd<under_t, N>
+#else
+    std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, N>>
+#endif
+    ;
     using data_t = simd_of<num_of_under>;
-    alignas(std::experimental::memory_alignment_v<data_t>) data_t data = 0;
+    data_t data{0};
     template <std::size_t N>
     static constexpr simd_of<N> zero = {};
     static constexpr board_t to_board(data_t data) {
@@ -405,5 +423,14 @@ namespace reachability {
       static_for<lines_per_under>([&](auto i) { shapes[i].data = shape_at_y<mino, i>().data; });
       return shapes;
     }();
+    static constexpr data_t initialize_as(int i, under_t v) {
+      return data_t{[=](auto j) {
+        if (j == i) {
+          return v;
+        } else {
+          return under_t(0);
+        }
+      }};
+    }
   };
 }

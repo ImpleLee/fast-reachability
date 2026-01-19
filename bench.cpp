@@ -6,6 +6,7 @@
 #include <iostream>
 #include <cassert>
 #include <chrono>
+#include <cstring>
 using namespace std;
 
 using BOARD = reachability::board_t<10, 24>;
@@ -21,7 +22,7 @@ uint64_t perft(BOARD b, const char *block, unsigned depth) {
     }
     reachability::static_for<B.SHAPES>([&](auto rot) {
       constexpr auto mino = B.minos[rot];
-      reachable[rot].for_each_bit([&](int x, int y) {
+      reachable[rot].for_each_bit([&][[gnu::always_inline]](int x, int y) {
         BOARD new_board = b | BOARD::put<mino>(x, y);
         n += perft(new_board.clear_full_lines().first, block+1, depth-1);
       });
