@@ -2,6 +2,7 @@
 #include "block.hpp"
 #include "utils.hpp"
 #include <limits>
+#include <numeric>
 #include <string_view>
 #include <string>
 #include <array>
@@ -9,6 +10,8 @@
 #include <cstdint>
 #include <bit>
 #include <climits>
+#include <iostream>
+#include "bit_permutations.hpp"
 #ifdef USE_STME
 #include "stme.hpp"
 #else
@@ -221,21 +224,34 @@ namespace reachability {
       return ret;
     }
     constexpr auto clear_full_lines() const {
-      auto is_full = all_bits();
-      int lines = 0;
-      const auto remove_range = [](board_t board, unsigned start) {
-        auto below = board & full_lines_of(start);
-        auto above = board.move<coord{0, -1}>() & ~full_lines_of(start);
-        return below | above;
-      };
-      auto copied = *this;
-      static_for<H>([&][[gnu::always_inline]](auto y){
-        if (is_full.template get<y>()) {
-          copied = remove_range(copied, y - lines);
-          ++lines;
-        }
+      const board_t is_full = all_bits();
+
+      const data_t is_full_single = is_full.data & one_bit<W - 1>();
+      if (!to_board(is_full_single).any()) {
+        return std::pair{*this, 0};
+      }
+      std::array<int, num_of_under> lines = {};
+      static_for<num_of_under>([&][[gnu::always_inline]](auto i){
+        lines[i] = std::popcount(under_t(is_full_single[i]));
       });
-      return std::pair{copied, lines};
+      const int all_lines = std::accumulate(lines.begin(), lines.end(), 0);
+
+      const data_t useful_bits_mask = ~is_full.populate_highest_bit().data;
+      data_t cleared{[&][[gnu::always_inline]](auto i){
+        return cxx26bp::bit_compress<under_t>(data[i], useful_bits_mask[i]);
+      }};
+
+      std::array<int, num_of_under> prefix_sum = {};
+      std::partial_sum(lines.begin(), lines.end() - 1, prefix_sum.begin() + 1);
+      data_t moved_down{[&][[gnu::always_inline]](auto i) -> under_t {
+        if constexpr (i == num_of_under - 1) return 0;
+        else return cleared[i + 1] << (W * (lines_per_under - prefix_sum[i + 1]));
+      }};
+      data_t remained{[&][[gnu::always_inline]](auto i) -> under_t {
+        return cleared[i] >> (W * prefix_sum[i]);
+      }};
+
+      return std::pair{to_board((moved_down | remained) & mask_board()), all_lines};
     }
     constexpr board_t has_single_bit() const {
       auto saturated = data | one_bit<W - 1>();
