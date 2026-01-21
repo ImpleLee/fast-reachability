@@ -274,12 +274,8 @@ namespace reachability {
       });
     }
   private:
-    template <std::size_t N>
-    using simd_of = std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, N>>;
-    using data_t = simd_of<num_of_under>;
-    alignas(std::experimental::memory_alignment_v<data_t>) data_t data = 0;
-    template <std::size_t N>
-    static constexpr simd_of<N> zero = {};
+    using data_t = std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, num_of_under>>;
+    data_t data = 0;
     static constexpr board_t to_board(data_t data) {
       board_t ret;
       ret.data = data;
