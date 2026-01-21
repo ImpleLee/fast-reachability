@@ -30,13 +30,27 @@ namespace reachability {
   constexpr auto name_of(block_type b) {
     using enum block_type;
     switch (b) {
-      case T: return "T";
-      case Z: return "Z";
-      case S: return "S";
-      case J: return "J";
-      case L: return "L";
-      case O: return "O";
-      case I: return "I";
+      case T: return 'T';
+      case Z: return 'Z';
+      case S: return 'S';
+      case J: return 'J';
+      case L: return 'L';
+      case O: return 'O';
+      case I: return 'I';
+      default: std::unreachable();
+    }
+  }
+
+  constexpr auto block_from_name(char c) {
+    using enum block_type;
+    switch (c) {
+      case 'T': return T;
+      case 'Z': return Z;
+      case 'S': return S;
+      case 'J': return J;
+      case 'L': return L;
+      case 'O': return O;
+      case 'I': return I;
       default: std::unreachable();
     }
   }
