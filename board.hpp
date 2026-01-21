@@ -266,7 +266,7 @@ namespace reachability {
     template <class F>
     void for_each_bit(F &&f) const {
       reachability::static_for<num_of_under>([&][[gnu::always_inline]](auto i) {
-        for (uint64_t data_i = data[i]; data_i; data_i &= data_i - 1) {
+        for (under_t data_i = data[i]; data_i; data_i &= data_i - 1) {
           int pos = std::countr_zero(data_i);
           [[assume(pos / W < lines_per_under && pos / W >= 0)]];
           f(pos % W, pos / W + i * lines_per_under);
