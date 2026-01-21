@@ -12,7 +12,7 @@ using namespace std;
 using BOARD = reachability::board_t<10, 24>;
 
 uint64_t perft(BOARD b, const char *block, unsigned depth) {
-  return reachability::blocks::call_with_block<reachability::blocks::SRS>(*block, [&]<reachability::block B>(){
+  return reachability::call_with_block<reachability::blocks::SRS>(reachability::block_from_name(*block), [&]<reachability::block B>(){
     auto reachable = reachability::search::binary_bfs<B, reachability::coord{4,20}, 0>(b);
     uint64_t n = 0;
     if (depth == 1) {

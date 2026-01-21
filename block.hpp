@@ -7,6 +7,53 @@ namespace reachability {
   constexpr coord operator-(const coord &co) {
     return {-co[0], -co[1]};
   }
+
+  enum class block_type {
+    T, Z, S, J, L, O, I
+  };
+
+  template <typename RS>
+  [[gnu::always_inline]] constexpr auto call_with_block(block_type b, auto f) {
+    using enum block_type;
+    switch (b) {
+      case T: return f.template operator()<RS::T>();
+      case Z: return f.template operator()<RS::Z>();
+      case S: return f.template operator()<RS::S>();
+      case J: return f.template operator()<RS::J>();
+      case L: return f.template operator()<RS::L>();
+      case O: return f.template operator()<RS::O>();
+      case I: return f.template operator()<RS::I>();
+      default: std::unreachable();
+    }
+  }
+
+  constexpr auto name_of(block_type b) {
+    using enum block_type;
+    switch (b) {
+      case T: return 'T';
+      case Z: return 'Z';
+      case S: return 'S';
+      case J: return 'J';
+      case L: return 'L';
+      case O: return 'O';
+      case I: return 'I';
+      default: std::unreachable();
+    }
+  }
+
+  constexpr auto block_from_name(char c) {
+    using enum block_type;
+    switch (c) {
+      case 'T': return T;
+      case 'Z': return Z;
+      case 'S': return S;
+      case 'J': return J;
+      case 'L': return L;
+      case 'O': return O;
+      case 'I': return I;
+      default: std::unreachable();
+    }
+  }
   template <int shapes, int orientations, int rotations, int block_per_mino, int kick_per_rotation>
   struct block {
     using mino = std::array<coord, block_per_mino>;
@@ -152,20 +199,6 @@ namespace reachability::blocks {
     {{{-1, 0}, {0, 0}, {1, 0}, {2, 0}}},   // 0
     {{{0, 1}, {0, 2}, {0, 0}, {0, -1}}},   // L
   }}};
-
-  template <typename RS>
-  [[gnu::always_inline]] constexpr auto call_with_block(char ch, auto f) {
-    switch (ch) {
-      case 'T': return f.template operator()<RS::T>();
-      case 'Z': return f.template operator()<RS::Z>();
-      case 'S': return f.template operator()<RS::S>();
-      case 'J': return f.template operator()<RS::J>();
-      case 'L': return f.template operator()<RS::L>();
-      case 'O': return f.template operator()<RS::O>();
-      case 'I': return f.template operator()<RS::I>();
-      default: std::unreachable();
-    }
-  }
 
   struct SRS { // used as a namespace but usable as a template parameter
     static constexpr pure_kick<4, 2, 5> common_kick = {{{
