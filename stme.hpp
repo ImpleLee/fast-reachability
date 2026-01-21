@@ -6,6 +6,13 @@
 #include <functional>
 #include "utils.hpp"
 
+#define AVOID_VECTOR_ASSIGN_CONSTEXPR 1
+#ifdef AVOID_VECTOR_ASSIGN_CONSTEXPR
+#define CONSTEXPR_MAYBE
+#else
+#define CONSTEXPR_MAYBE constexpr
+#endif
+
 namespace Shak {
     using namespace reachability;
     
@@ -21,212 +28,127 @@ namespace Shak {
     // same type multiple element (simd but worse)
     template<typename T, std::size_t N>
     struct stme {
+        using data_t [[gnu::vector_size(N * sizeof(T))]] = T;
+        static_assert(sizeof(data_t) == N * sizeof(T));
         explicit constexpr stme() = default;
         public:
         template<my_epic_generator<N> Generator>
-        constexpr explicit stme(Generator gen) {
+        CONSTEXPR_MAYBE explicit stme(Generator gen) {
             static_for<N>([&](const auto i) {
-                data[i] = std::invoke(gen, i);
+                data[int(i)] = std::invoke(gen, i);
             });
         }
 
 
-        constexpr explicit stme( std::integral auto value ) noexcept{
+        CONSTEXPR_MAYBE explicit stme( std::integral auto value ) noexcept{
             static_for<N>([&](const auto i) {
-                data[i] = value;
+                data[int(i)] = value;
             });
         }
 
         template< class U >
         constexpr explicit stme( stme<U, N> other ) noexcept {
+            data = other.data;
+        }
+
+        CONSTEXPR_MAYBE explicit stme (std::array<T, N> other) noexcept {
             static_for<N>([&](const auto i) {
-                data[i] = other[i];
+                data[int(i)] = other[i];
             });
         }
 
-        constexpr explicit stme (std::array<T, N> other) noexcept {
-            static_for<N>([&](const auto i) {
-                data[i] = other[i];
-            });
+        constexpr explicit stme (data_t other) noexcept {
+            data = other;
         }
 
-
-        constexpr const T& operator[](auto i) const {
+        constexpr T operator[](int i) const {
             return data[i];
         }
-        
-        constexpr T& operator[](auto i) {
-            return data[i];
+
+        CONSTEXPR_MAYBE void assign(int i, T value) {
+            data[i] = value;
         }
 
         constexpr stme operator-(stme other) const {
-            stme ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] - other[i];
-            });
-            return ret;
+            return stme{data - other.data};
         }
         
         constexpr stme operator+(stme other) const {
-            stme ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] + other[i];
-            });
-            return ret;
+            return stme{data + other.data};
         }
         
         constexpr stme operator|(stme other) const {
-            stme ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] | other[i];
-            });
-            return ret;
+            return stme{data | other.data};
         }
         
         constexpr stme operator&(stme other) const {
-            stme ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] & other[i];
-            });
-            return ret;
+            return stme{data & other.data};
         }
         
         constexpr stme operator^(stme other) const {
-            stme ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] ^ other[i];
-            });
-            return ret;
+            return stme{data ^ other.data};
         }
         
         constexpr stme operator>>(std::integral auto other) const {
-            stme ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] >> other;
-            });
-            return ret;
-        }
-        template <std::integral auto other>
-        constexpr stme right_shift() const {
-            stme ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] >> other;
-            });
-            return ret;
+            return stme{data >> other};
         }
 
         constexpr void operator>>=(stme other) {
-            std::array<T,N> ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] >> other[i];
-            });
-            data = ret;
+            data >>= other.data;
         }
 
         constexpr void operator>>=(std::integral auto other) {
-            std::array<T,N> ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] >> other;
-            });
-            data = ret;
+            data >>= other;
         }
         
         constexpr void operator<<=(stme other) {
-            std::array<T,N> ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] << other[i];
-            });
-            data = ret;
+            data <<= other.data;
         }
 
         constexpr void operator<<=(std::integral auto other) {
-            std::array<T,N> ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] << other;
-            });
-            data = ret;
+            data <<= other;
         }
 
         constexpr stme operator<<(std::integral auto other) const {
-            stme ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] << other;
-            });
-            return ret;
+            return stme{data << other};
         }
 
         stme operator<<(unsigned int other) {
-            stme ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] << other;
-            });
-            return ret;
+            return stme{data << other};
         }
 
         constexpr stme operator==(std::integral auto other) const {
-            stme ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] == other;
-            });
-            return ret;
+            return stme{data == other};
         }
         
         constexpr stme operator!=(std::integral auto other) const {
-            stme ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] != other;
-            });
-            return ret;
+            return stme{data != other};
         }
         
         constexpr stme operator!=(stme other) const {
-            stme ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] != other[i];
-            });
-            return ret;
+            return stme{data != other.data};
         }
 
         constexpr void operator&=(stme other) {
-            std::array<T,N> ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] & other[i];
-            });
-            data = ret;
+            data &= other.data;
         }
         
         constexpr void operator|=(stme other) {
-            std::array<T,N> ret;
-            static_for<N>([&](auto i) {
-                ret[i] = data[i] | other[i];
-            });
-            data = ret;
+            data |= other.data;
         }
 
         constexpr stme operator~() const {
-            stme ret{data};
-            static_for<N>([&](auto i) {
-                ret[i] = ~ret[i];
-            });
-            return ret;
+            return stme{~data};
         }
 
-        constexpr auto begin() const {
-            return data.begin();
-        }
-
-        constexpr auto end() const {
-            return data.end();
-        }
-
-        constexpr auto size() const {
-            return data.size();
+        constexpr static auto size() {
+            return N;
         }
 
         constexpr bool any_of() const {
             T any{};
             static_for<N>([&](auto i) {
-                any |= data[i];
+                any |= data[int(i)];
             });
 
             return !!any;
@@ -235,13 +157,13 @@ namespace Shak {
         constexpr bool all_of() const {
             T all = -1;
             static_for<N>([&](auto i) {
-                all &= data[i];
+                all &= data[int(i)];
             });
 
             return !!all;
         }
 
-        [[no_unique_address]] std::array<T,N> data{};
+        data_t data;
     };
 
 };

@@ -56,10 +56,22 @@ namespace reachability {
     }
     template <int x, int y>
     constexpr void set() {
-      data[y / lines_per_under] |= under_t(1) << ((y % lines_per_under) * W + x);
+      constexpr int yi = y / lines_per_under;
+      constexpr under_t bit = under_t(1) << ((y % lines_per_under) * W + x);
+#ifdef USE_STME
+      data.assign(yi, data[yi] | bit);
+#else
+      data[yi] |= bit;
+#endif
     }
     constexpr void set(int x, int y) {
-      data[y / lines_per_under] |= under_t(1) << ((y % lines_per_under) * W + x);
+      const int yi = y / lines_per_under;
+      const under_t bit = under_t(1) << ((y % lines_per_under) * W + x);
+#ifdef USE_STME
+      data.assign(yi, data[yi] | bit);
+#else
+      data[yi] |= bit;
+#endif
     }
     template <int x, int y>
     constexpr int get() const {
@@ -284,10 +296,18 @@ namespace reachability {
       #pragma unroll num_of_under
       for (int i = num_of_under - 1; i >= 0; --i) {
         if (found) {
+#ifdef USE_STME
+          board.assign(i, 0);
+#else
           board[i] = 0;
+#endif
         } else if (ones[i] < std::numeric_limits<under_t>::digits) {
           found = true;
+#ifdef USE_STME
+          board.assign(i, board[i] & ~((~under_t(0)) >> ones[i]));
+#else
           board[i] &= ~((~under_t(0)) >> ones[i]);
+#endif
         }
       }
       return to_board(board & mask_board());
@@ -327,29 +347,13 @@ namespace reachability {
       });
     }
   private:
-    template <std::size_t N>
-    using simd_of =
+    using data_t =
 #ifdef USE_STME
-      Shak::stme<under_t, N>
+    Shak::stme<under_t, num_of_under>;
 #else
-      std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, N>>
+    std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, num_of_under>>;
 #endif
-    ;
-    using data_t = simd_of<num_of_under>;
-#ifdef USE_STME
-    [[no_unique_address]]
-#else
-    alignas(std::experimental::memory_alignment_v<data_t>)
-#endif
-      data_t data{0};
-    template <std::size_t N>
-    static constexpr
-#ifdef USE_STME
-    data_t
-#else
-    simd_of<N>
-#endif
-    zero = {};
+    data_t data{0};
     static constexpr board_t to_board(data_t data) {
       board_t ret;
       ret.data = data;
