@@ -15,7 +15,7 @@
 
 namespace Shak {
     using namespace reachability;
-    
+
     template<typename Generator, std::size_t N>
     concept my_epic_generator = []<std::size_t... Indices>(std::index_sequence<Indices...>) {
         /* Can be called with every index. */
@@ -65,30 +65,30 @@ namespace Shak {
             return data[i];
         }
 
-        CONSTEXPR_MAYBE void assign(int i, T value) {
-            data[i] = value;
+        friend CONSTEXPR_MAYBE void assign(stme &d, int i, T value) {
+            d.data[i] = value;
         }
 
         constexpr stme operator-(stme other) const {
             return stme{data - other.data};
         }
-        
+
         constexpr stme operator+(stme other) const {
             return stme{data + other.data};
         }
-        
+
         constexpr stme operator|(stme other) const {
             return stme{data | other.data};
         }
-        
+
         constexpr stme operator&(stme other) const {
             return stme{data & other.data};
         }
-        
+
         constexpr stme operator^(stme other) const {
             return stme{data ^ other.data};
         }
-        
+
         constexpr stme operator>>(std::integral auto other) const {
             return stme{data >> other};
         }
@@ -100,7 +100,7 @@ namespace Shak {
         constexpr void operator>>=(std::integral auto other) {
             data >>= other;
         }
-        
+
         constexpr void operator<<=(stme other) {
             data <<= other.data;
         }
@@ -120,11 +120,11 @@ namespace Shak {
         constexpr stme operator==(std::integral auto other) const {
             return stme{data == other};
         }
-        
+
         constexpr stme operator!=(std::integral auto other) const {
             return stme{data != other};
         }
-        
+
         constexpr stme operator!=(stme other) const {
             return stme{data != other.data};
         }
@@ -132,7 +132,7 @@ namespace Shak {
         constexpr void operator&=(stme other) {
             data &= other.data;
         }
-        
+
         constexpr void operator|=(stme other) {
             data |= other.data;
         }
@@ -145,19 +145,19 @@ namespace Shak {
             return N;
         }
 
-        constexpr bool any_of() const {
+        friend constexpr bool any_of(stme self) {
             T any{};
             static_for<N>([&](auto i) {
-                any |= data[int(i)];
+                any |= self.data[int(i)];
             });
 
             return !!any;
         }
 
-        constexpr bool all_of() const {
+        friend constexpr bool all_of(stme self) {
             T all = -1;
             static_for<N>([&](auto i) {
-                all &= data[int(i)];
+                all &= self.data[int(i)];
             });
 
             return !!all;

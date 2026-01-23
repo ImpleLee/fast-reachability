@@ -9,8 +9,6 @@
 #include <type_traits>
 #include <cstdint>
 #include <bit>
-#include <climits>
-#include <iostream>
 #include "bit_permutations.hpp"
 #ifdef USE_STME
 #include "stme.hpp"
@@ -58,20 +56,12 @@ namespace reachability {
     constexpr void set() {
       constexpr int yi = y / lines_per_under;
       constexpr under_t bit = under_t(1) << ((y % lines_per_under) * W + x);
-#ifdef USE_STME
-      data.assign(yi, data[yi] | bit);
-#else
-      data[yi] |= bit;
-#endif
+      assign(data, yi, data[yi] | bit);
     }
     constexpr void set(int x, int y) {
       const int yi = y / lines_per_under;
       const under_t bit = under_t(1) << ((y % lines_per_under) * W + x);
-#ifdef USE_STME
-      data.assign(yi, data[yi] | bit);
-#else
-      data[yi] |= bit;
-#endif
+      assign(data, yi, data[yi] | bit);
     }
     template <int x, int y>
     constexpr int get() const {
@@ -95,18 +85,10 @@ namespace reachability {
       return *this != board_t{};
     }
     constexpr bool operator!=(board_t other) const {
-#ifdef USE_STME
-      return (data != other.data).any_of();
-#else
       return any_of(data != other.data);
-#endif
     }
     constexpr bool contains(board_t other) const {
-#ifdef USE_STME
-      return ((other.data & ~data) == under_t(0)).all_of();
-#else
       return all_of((other.data & ~data) == under_t(0));
-#endif
     }
     constexpr board_t operator~() const {
       board_t other;
@@ -296,18 +278,10 @@ namespace reachability {
       #pragma unroll num_of_under
       for (int i = num_of_under - 1; i >= 0; --i) {
         if (found) {
-#ifdef USE_STME
-          board.assign(i, 0);
-#else
-          board[i] = 0;
-#endif
+          assign(board, i, 0);
         } else if (ones[i] < std::numeric_limits<under_t>::digits) {
           found = true;
-#ifdef USE_STME
-          board.assign(i, board[i] & ~((~under_t(0)) >> ones[i]));
-#else
-          board[i] &= ~((~under_t(0)) >> ones[i]);
-#endif
+          assign(board, i, board[i] & ~((~under_t(0)) >> ones[i]));
         }
       }
       return to_board(board & mask_board());
@@ -460,5 +434,10 @@ namespace reachability {
       static_for<lines_per_under>([&](auto i) { shapes[i].data = shape_at_y<mino, i>().data; });
       return shapes;
     }();
+#ifndef USE_STME
+    static void assign(data_t &data, int i, under_t value) {
+      data[i] = value;
+    }
+#endif
   };
 }
