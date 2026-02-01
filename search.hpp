@@ -26,7 +26,23 @@ namespace reachability::search {
     const auto indicator01 = usable.get_heads();
     return indicator01.has_single_bit();
   }
-  template <block block, coord start, unsigned init_rot, typename board_t>
+  template <std::array mino_from, std::array mino_to, coord d, typename board_t>
+  constexpr board_t move_usable(board_t data) {
+    constexpr int dx = d[0];
+    constexpr bool need_mask = []{
+      constexpr auto range_from = blocks::mino_range<mino_from>();
+      constexpr auto range_to = blocks::mino_range<mino_to>();
+      if constexpr (dx == 0) {
+        return false;
+      } else if constexpr (dx > 0) {
+        return range_from[2] - dx - range_to[0] < 0;
+      } else {
+        return range_to[2] + dx - range_from[0] < 0;
+      }
+    }();
+    return data.template move<d, need_mask>();
+  }
+  template <block block, coord start, std::size_t init_rot, typename board_t>
   constexpr std::array<board_t, block.SHAPES> binary_bfs(board_t data) {
     constexpr int orientations = block.ORIENTATIONS;
     constexpr int rotations = block.ROTATIONS;
@@ -74,7 +90,7 @@ namespace reachability::search {
         while (true) {
           board_t result = cache[i];
           static_for<MOVES.size()>([&][[gnu::always_inline]](auto j) {
-            result |= cache[i].template move<MOVES[j]>();
+            result |= move_usable<block.minos[index], block.minos[index], MOVES[j]>(cache[i]);
           });
           result &= usable[index];
           if (cache[i].contains(result)) [[unlikely]] {
@@ -88,8 +104,8 @@ namespace reachability::search {
           constexpr auto index2 = block.mino_index[target];
           board_t temp = cache[i];
           static_for<kicks>([&][[gnu::always_inline]](auto k){
-            to |= temp.template move<block.kicks[i][j][k]>();
-            temp &= ~usable[index2].template move<-block.kicks[i][j][k]>();
+            to |= move_usable<block.minos[index], block.minos[index2], block.kicks[i][j][k]>(temp);
+            temp &= ~move_usable<block.minos[index2], block.minos[index], -block.kicks[i][j][k]>(usable[index2]);
           });
           to &= usable[index2];
           if (!cache[target].contains(to)) {
