@@ -11,7 +11,7 @@ double test(const BOARD &b, string_view name, reachability::block_type block) {
   using namespace reachability::search;
   using namespace reachability::blocks;
   printf("BOARD %s\n", name.data());
-  printf(" BLOCK %s\n", name_of(block));
+  printf(" BLOCK %c\n", name_of(block));
   auto binary_time = bench<100000000>([](BOARD b, reachability::block_type block){ return binary_bfs<SRS, start, init_rot>(b, block); }, b, block);
   printf("  binary  : %f cycles\n", binary_time);
   return binary_time;
