@@ -22,8 +22,8 @@ uint64_t perft(BOARD b, const char *block, unsigned depth) {
         n += reachable[rot].popcount();
       return n;
     }
-    reachability::static_for<B.SHAPES>([&](auto rot) {
-      constexpr auto mino = B.minos[rot];
+    reachability::static_for<B.shapes>([&](auto rot) {
+      constexpr auto mino = std::get<rot>(B.minos);
       reachable[rot].for_each_bit([&](int x, int y) {
         BOARD new_board = b | BOARD::put<mino>(x, y);
         n += perft(new_board.clear_full_lines().first, block+1, depth-1);

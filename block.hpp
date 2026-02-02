@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <utility>
+#include "utils.hpp"
 
 namespace reachability {
   using coord = std::array<int, 2>;
@@ -54,211 +55,170 @@ namespace reachability {
       default: std::unreachable();
     }
   }
-  template <int shapes, int orientations, int rotations, int block_per_mino, int kick_per_rotation>
-  struct block {
-    using mino = std::array<coord, block_per_mino>;
-    using kick = std::array<coord, kick_per_rotation>;
-    static constexpr int SHAPES = shapes;
-    static constexpr int ORIENTATIONS = orientations;
-    static constexpr int ROTATIONS = rotations;
-    static constexpr int BLOCK_PER_MINO = block_per_mino;
-    static constexpr int KICK_PER_ROTATION = kick_per_rotation;
-    [[no_unique_address]]
-    std::array<mino, shapes> minos;
-    [[no_unique_address]]
-    std::array<std::array<kick, rotations>, orientations> kicks;
-    [[no_unique_address]]
-    std::array<int, orientations> mino_index;
-    [[no_unique_address]]
-    std::array<coord, orientations> mino_offset;
-    static constexpr int rotation_target(int from, int rotation_num) {
-      if constexpr (orientations == 4 && rotations == 2) {
-        // cw & ccw
-        return (from + rotation_num * 2 + 1) % orientations;
-      }
-      return (from + rotation_num + 1) % orientations;
-    }
+
+  constexpr auto mino_p = vec_of<type_of<coord>>;
+  constexpr auto minos_p = vec_of<mino_p>;
+  constexpr auto mino_index_p = vec_of<type_of<std::pair<int, coord>>>;
+  constexpr auto kicks_p = vec_of<
+    tuple_of<
+      type_of<std::pair<int, int>>,
+      vec_of<
+        type_of<coord>>>>;
+
+  template <
+    Wrap<minos_p> minos_t,
+    Wrap<mino_index_p> mino_index_t,
+    Wrap<kicks_p> kicks_t
+  > struct block {
+    static constexpr int shapes = std::tuple_size_v<minos_t>;
+    static constexpr int orientations = std::tuple_size_v<mino_index_t>;
+    minos_t minos;
+    mino_index_t mino_index;
+    kicks_t kicks;
   };
 }
 namespace reachability::blocks {
-  template <std::array mino>
+  template <Wrap<mino_p> auto mino>
   constexpr std::array<int, 4> mino_range() {
-    static_assert(mino.size() >= 1);
-    auto [min_x, min_y] = mino[0];
-    auto [max_x, max_y] = mino[0];
-    for (auto [x, y] : mino) {
+    static_assert(std::tuple_size_v<decltype(mino)> >= 1);
+    auto [min_x, min_y] = std::get<0>(mino);
+    auto [max_x, max_y] = std::get<0>(mino);
+    static_for<std::tuple_size_v<decltype(mino)>>([&](auto i){
+      auto [x, y] = std::get<i>(mino);
       if (x < min_x) min_x = x;
       if (x > max_x) max_x = x;
       if (y < min_y) min_y = y;
       if (y > max_y) max_y = y;
-    }
+    });
     return {min_x, min_y, max_x, max_y};
   }
 
-  template <int block_per_mino, int orientations>
+  template <Wrap<minos_p> minos_t>
   struct pure_block {
-    using mino = std::array<coord, block_per_mino>;
-    std::array<mino, orientations> minos;
+    minos_t minos;
   };
 
-  template <int shapes, int block_per_mino, int orientations>
-  struct block_with_offset {
-    using mino = std::array<coord, block_per_mino>;
-    std::array<mino, shapes> minos;
-    std::array<int, orientations> mino_index;
-    std::array<coord, orientations> mino_offset;
+  template <
+    Wrap<minos_p> minos_t,
+    Wrap<mino_index_p> mino_index_t
+  > struct block_with_offset {
+    minos_t minos;
+    mino_index_t mino_index;
   };
-  template <int block_per_mino, int orientations>
-  constexpr block_with_offset<orientations, block_per_mino, orientations> convert(const pure_block<block_per_mino, orientations> &b) {
-    block_with_offset<orientations, block_per_mino, orientations> ret;
-    for (int i = 0; i < orientations; ++i) {
-      ret.minos[i] = b.minos[i];
-      ret.mino_index[i] = i;
-      ret.mino_offset[i] = {0, 0};
-    }
-    return ret;
+
+  template <Wrap<minos_p> minos_t>
+  constexpr auto convert(const pure_block<minos_t> &b) {
+    std::array<std::pair<int, coord>, std::tuple_size_v<minos_t>> mino_index;
+    static_for<std::tuple_size_v<minos_t>>([&](auto i){
+      mino_index[i] = {i, coord{0, 0}};
+    });
+    return block_with_offset{b.minos, mino_index};
   }
 
-  template <int shapes, int block_per_mino, int orientations>
-  constexpr block_with_offset<shapes, block_per_mino, orientations> convert(
-    const pure_block<block_per_mino, shapes> &b,
-    const std::array<int, orientations> &mino_index,
-    std::array<coord, orientations> mino_offset
-  ) {
-    return {
-      b.minos,
-      mino_index,
-      mino_offset
-    };
-  }
-
-  template <int orientations, int rotations, int kick_per_rotation>
+  template <Wrap<kicks_p> kicks_t>
   struct pure_kick {
-    using kick = std::array<coord, kick_per_rotation>;
-    std::array<std::array<kick, rotations>, orientations> kicks;
+    kicks_t kicks;
+    constexpr explicit pure_kick(kicks_t kicks): kicks(kicks) {}
   };
 
   constexpr coord operator+(const coord &co1, const coord &co2) {
     return {co1[0] + co2[0], co1[1] + co2[1]};
   }
-  template <int shapes, int orientations, int rotations, int block_per_mino, int kick_per_rotation>
-  constexpr block<shapes, orientations, rotations, block_per_mino, kick_per_rotation> operator+(
-    const block_with_offset<shapes, block_per_mino, orientations> &b,
-    const pure_kick<orientations, rotations, kick_per_rotation> &k
-  ) {
-    std::array<std::array<std::array<coord, kick_per_rotation>, rotations>, orientations> kicks;
-    for (int i = 0; i < orientations; ++i) {
-      for (int j = 0; j < rotations; ++j) {
-        const auto target = block<shapes, orientations, rotations, block_per_mino, kick_per_rotation>::rotation_target(i, j);
-        const auto offset = -b.mino_offset[i] + b.mino_offset[target];
-        for (int l = 0; l < kick_per_rotation; ++l) {
-          kicks[i][j][l] = k.kicks[i][j][l] + offset;
-        }
-      }
-    }
-    return {
-      b.minos,
-      kicks,
-      b.mino_index,
-      b.mino_offset
-    };
-  }
+  template <
+    block_with_offset b,
+    pure_kick k
+  > constexpr auto combine = []{
+    auto kicks = k.kicks;
+    static_for<std::tuple_size_v<decltype(k.kicks)>>([&](auto i){
+      auto &[_, kick_table] = std::get<i>(kicks);
+      constexpr auto diff = std::get<0>(std::get<i>(k.kicks));
+      const auto offset = -std::get<std::get<0>(diff)>(b.mino_index).second + std::get<std::get<1>(diff)>(b.mino_index).second;
+      static_for<std::tuple_size_v<decltype(kick_table)>>([&](auto j){
+        std::get<j>(kick_table) = std::get<j>(kick_table) + offset;
+      });
+    });
+    return block{b.minos, b.mino_index, kicks};
+  }();
 
-  inline constexpr pure_kick<1, 0, 0> no_rotation;
+  inline constexpr pure_kick no_rotation{tuple{}};
 
-  inline constexpr pure_block<4, 4> T = {{{
-    {{{-1, 0}, {0, 0}, {1, 0}, {0, 1}}},  // 0
-    {{{0, 1}, {0, 0}, {0, -1}, {1, 0}}},  // R
-    {{{1, 0}, {0, 0}, {-1, 0}, {0, -1}}}, // 2
-    {{{0, -1}, {0, 0}, {0, 1}, {-1, 0}}}  // L
-  }}};
-  inline constexpr pure_block<4, 2> Z  = {{{
-    {{{-1, 1}, {0, 1}, {0, 0}, {1, 0}}},   // 0
-    {{{-1, -1}, {-1, 0}, {0, 0}, {0, 1}}}  // L
-  }}};
-  inline constexpr pure_block<4, 2> S = {{{
-    {{{1, 1}, {0, 1}, {0, 0}, {-1, 0}}},   // 0
-    {{{-1, 1}, {-1, 0}, {0, 0}, {0, -1}}}  // L
-  }}};
-  inline constexpr pure_block<4, 4> J = {{{
-    {{{-1, 1}, {-1, 0}, {0, 0}, {1, 0}}}, // 0
-    {{{1, 1}, {0, 1}, {0, 0}, {0, -1}}},  // R
-    {{{1, -1}, {1, 0}, {0, 0}, {-1, 0}}}, // 2
-    {{{-1, -1}, {0, -1}, {0, 0}, {0, 1}}} // L
-  }}};
-  inline constexpr pure_block<4, 4> L = {{{
-    {{{-1, 0}, {0, 0}, {1, 0}, {1, 1}}},  // 0
-    {{{0, 1}, {0, 0}, {0, -1}, {1, -1}}}, // R
-    {{{1, 0}, {0, 0}, {-1, 0}, {-1, -1}}},// 2
-    {{{0, -1}, {0, 0}, {0, 1}, {-1, 1}}}  // L
-  }}};
-  inline constexpr pure_block<4, 1> O = {{{
-    {{{0, 0}, {1, 0}, {0, 1}, {1, 1}}},
-  }}};
-  inline constexpr pure_block<4, 2> I = {{{
-    {{{-1, 0}, {0, 0}, {1, 0}, {2, 0}}},   // 0
-    {{{0, 1}, {0, 2}, {0, 0}, {0, -1}}},   // L
-  }}};
+  inline constexpr pure_block T = {tuple{
+    tuple{coord{-1, 0}, coord{0, 0}, coord{1, 0}, coord{0, 1}},  // 0
+    tuple{coord{0, 1}, coord{0, 0}, coord{0, -1}, coord{1, 0}},  // R
+    tuple{coord{1, 0}, coord{0, 0}, coord{-1, 0}, coord{0, -1}}, // 2
+    tuple{coord{0, -1}, coord{0, 0}, coord{0, 1}, coord{-1, 0}}  // L
+  }};
+  inline constexpr pure_block Z = {tuple{
+    tuple{coord{-1, 1}, coord{0, 1}, coord{0, 0}, coord{1, 0}},   // 0
+    tuple{coord{-1, -1}, coord{-1, 0}, coord{0, 0}, coord{0, 1}}  // L
+  }};
+  inline constexpr pure_block S = {tuple{
+    tuple{coord{1, 1}, coord{0, 1}, coord{0, 0}, coord{-1, 0}},   // 0
+    tuple{coord{-1, 1}, coord{-1, 0}, coord{0, 0}, coord{0, -1}}  // L
+  }};
+  inline constexpr pure_block J = {tuple{
+    tuple{coord{-1, 1}, coord{-1, 0}, coord{0, 0}, coord{1, 0}},  // 0
+    tuple{coord{1, 1}, coord{0, 1}, coord{0, 0}, coord{0, -1}},   // R
+    tuple{coord{1, -1}, coord{1, 0}, coord{0, 0}, coord{-1, 0}},  // 2
+    tuple{coord{-1, -1}, coord{0, -1}, coord{0, 0}, coord{0, 1}}  // L
+  }};
+  inline constexpr pure_block L = {tuple{
+    tuple{coord{-1, 0}, coord{0, 0}, coord{1, 0}, coord{1, 1}},   // 0
+    tuple{coord{0, 1}, coord{0, 0}, coord{0, -1}, coord{1, -1}},  // R
+    tuple{coord{1, 0}, coord{0, 0}, coord{-1, 0}, coord{-1, -1}}, // 2
+    tuple{coord{0, -1}, coord{0, 0}, coord{0, 1}, coord{-1, 1}}   // L
+  }};
+  inline constexpr pure_block O = {make_tuple(
+    tuple{coord{0, 0}, coord{1, 0}, coord{0, 1}, coord{1, 1}}
+  )};
+  inline constexpr pure_block I = {tuple{
+    tuple{coord{-1, 0}, coord{0, 0}, coord{1, 0}, coord{2, 0}},   // 0
+    tuple{coord{0, 1}, coord{0, 2}, coord{0, 0}, coord{0, -1}},   // L
+  }};
 
   struct SRS { // used as a namespace but usable as a template parameter
-    static constexpr pure_kick<4, 2, 5> common_kick = {{{
-      {{ // 0
-        {{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}}},  // -> R
-        {{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}}}      // -> L
-      }},
-      {{ // R
-        {{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}}},      // -> 2
-        {{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}}}       // -> 0
-      }},
-      {{ // 2
-        {{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}}},     // -> L
-        {{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}}}   // -> R
-      }},
-      {{ // L
-        {{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}},   // -> 0
-        {{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}}    // -> 2
-      }}
-    }}};
-    static constexpr pure_kick<4, 2, 5> I_kick = {{{
-      {{
-        {{{1, 0}, {-1, 0}, {2, 0}, {-1, -1}, {2, 2}}},
-        {{{0, -1}, {-1, -1}, {2, -1}, {-1, 1}, {2, -2}}},
-      }},
-      {{
-        {{{0, -1}, {-1, -1}, {2, -1}, {-1, 1}, {2, -2}}},
-        {{{-1, 0}, {1, 0}, {-2, 0}, {1, 1}, {-2, -2}}},
-      }},
-      {{
-        {{{-1, 0}, {1, 0}, {-2, 0}, {1, 1}, {-2, -2}}},
-        {{{0, 1}, {1, 1}, {-2, 1}, {1, -1}, {-2, 2}}},
-      }},
-      {{
-        {{{0, 1}, {1, 1}, {-2, 1}, {1, -1}, {-2, 2}}},
-        {{{1, 0}, {-1, 0}, {2, 0}, {-1, -1}, {2, 2}}},
-      }}
-    }}};
-    static constexpr auto T = convert(blocks::T) + common_kick;
-    static constexpr auto Z = convert<2, 4, 4>(blocks::Z, {{0, 1, 0, 1}}, {{
-      {{0, 0}},
-      {{1, 0}},
-      {{0, -1}},
-      {{0, 0}}
-    }}) + common_kick;
-    static constexpr auto S = convert<2, 4, 4>(blocks::S, {{0, 1, 0, 1}}, {{
-      {{0, 0}},
-      {{1, 0}},
-      {{0, -1}},
-      {{0, 0}}
-    }}) + common_kick;
-    static constexpr auto J = convert(blocks::J) + common_kick;
-    static constexpr auto L = convert(blocks::L) + common_kick;
-    static constexpr auto O = convert(blocks::O) + no_rotation;
-    static constexpr auto I = convert<2, 4, 4>(blocks::I, {{0, 1, 0, 1}}, {{
-      {{0, 0}},
-      {{0, -1}},
-      {{-1, 0}},
-      {{0, 0}}
-    }}) + I_kick;
+    static constexpr pure_kick common_kick{tuple{
+      tuple{std::pair{0, 1}, tuple{coord{0, 0}, coord{-1, 0}, coord{-1, 1}, coord{0, -2}, coord{-1, -2}}},  // 0 -> R
+      tuple{std::pair{0, 3}, tuple{coord{0, 0}, coord{1, 0}, coord{1, 1}, coord{0, -2}, coord{1, -2}}},     // 0 -> L
+      tuple{std::pair{1, 2}, tuple{coord{0, 0}, coord{1, 0}, coord{1, -1}, coord{0, 2}, coord{1, 2}}},      // R -> 2
+      tuple{std::pair{1, 0}, tuple{coord{0, 0}, coord{1, 0}, coord{1, -1}, coord{0, 2}, coord{1, 2}}},      // R -> 0
+      tuple{std::pair{2, 3}, tuple{coord{0, 0}, coord{1, 0}, coord{1, 1}, coord{0, -2}, coord{1, -2}}},     // 2 -> L
+      tuple{std::pair{2, 1}, tuple{coord{0, 0}, coord{-1, 0}, coord{-1, 1}, coord{0, -2}, coord{-1, -2}}},  // 2 -> R
+      tuple{std::pair{3, 0}, tuple{coord{0, 0}, coord{-1, 0}, coord{-1, -1}, coord{0, 2}, coord{-1, 2}}},   // L -> 0
+      tuple{std::pair{3, 2}, tuple{coord{0, 0}, coord{-1, 0}, coord{-1, -1}, coord{0, 2}, coord{-1, 2}}},   // L -> 2
+    }};
+    static constexpr pure_kick I_kick{tuple{
+      tuple{std::pair{0, 1}, tuple{coord{1, 0}, coord{-1, 0}, coord{2, 0}, coord{-1, -1}, coord{2, 2}}},    // 0 -> R
+      tuple{std::pair{0, 3}, tuple{coord{0, -1}, coord{-1, -1}, coord{2, -1}, coord{-1, 1}, coord{2, -2}}}, // 0 -> L
+      tuple{std::pair{1, 2}, tuple{coord{0, -1}, coord{-1, -1}, coord{2, -1}, coord{-1, 1}, coord{2, -2}}}, // R -> 2
+      tuple{std::pair{1, 0}, tuple{coord{-1, 0}, coord{1, 0}, coord{-2, 0}, coord{1, 1}, coord{-2, -2}}},   // R -> 0
+      tuple{std::pair{2, 3}, tuple{coord{-1, 0}, coord{1, 0}, coord{-2, 0}, coord{1, 1}, coord{-2, -2}}},   // 2 -> L
+      tuple{std::pair{2, 1}, tuple{coord{0, 1}, coord{1, 1}, coord{-2, 1}, coord{1, -1}, coord{-2, 2}}},    // 2 -> R
+      tuple{std::pair{3, 0}, tuple{coord{0, 1}, coord{1, 1}, coord{-2, 1}, coord{1, -1}, coord{-2, 2}}},    // L -> 0
+      tuple{std::pair{3, 2}, tuple{coord{1, 0}, coord{-1, 0}, coord{2, 0}, coord{-1, -1}, coord{2, 2}}},    // L -> 2
+    }};
+    static constexpr auto T = combine<convert(blocks::T), common_kick>;
+    static constexpr auto Z = combine<block_with_offset{blocks::Z.minos, tuple{
+      std::pair{0, coord{0, 0}},
+      std::pair{1, coord{1, 0}},
+      std::pair{0, coord{0, -1}},
+      std::pair{1, coord{0, 0}},
+    }}, common_kick>;
+    static constexpr auto S = combine<block_with_offset{blocks::S.minos, tuple{
+      std::pair{0, coord{0, 0}},
+      std::pair{1, coord{1, 0}},
+      std::pair{0, coord{0, -1}},
+      std::pair{1, coord{0, 0}},
+    }}, common_kick>;
+    static constexpr auto J = combine<convert(blocks::J), common_kick>;
+    static constexpr auto L = combine<convert(blocks::L), common_kick>;
+    static constexpr auto O = combine<convert(blocks::O), no_rotation>;
+    static constexpr auto I = combine<block_with_offset{blocks::I.minos, tuple{
+      std::pair{0, coord{0, 0}},
+      std::pair{1, coord{0, -1}},
+      std::pair{0, coord{-1, 0}},
+      std::pair{1, coord{0, 0}},
+    }}, I_kick>;
     SRS() = delete;
   };
 }

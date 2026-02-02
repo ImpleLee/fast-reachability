@@ -122,7 +122,7 @@ namespace reachability {
       result ^= rhs;
       return result;
     }
-    template <std::array mino>
+    template <Wrap<mino_p> auto mino>
     static constexpr board_t put(int x, int y) {
       constexpr auto range = blocks::mino_range<mino>();
       constexpr int min_x = range[0];
@@ -412,23 +412,24 @@ namespace reachability {
       }
       return res;
     }
-    template <std::array mino>
+    template <Wrap<mino_p> auto mino>
     static constexpr board_t standard_shape() {
       auto [min_x, min_y, max_x, max_y] = blocks::mino_range<mino>();
       board_t b;
-      for (auto [x, y] : mino) {
+      static_for<std::tuple_size_v<decltype(mino)>>([&](auto i){
+        auto [x, y] = std::get<i>(mino);
         x -= min_x;
         y -= min_y;
         b.set(x, y);
-      }
+      });
       return b;
     }
-    template <std::array mino, int y>
+    template <Wrap<mino_p> auto mino, int y>
     static constexpr board_t shape_at_y() {
       constexpr auto range = blocks::mino_range<mino>();
       return standard_shape<mino>().template move<coord{0, y + range[1] + lines_per_under}>();
     }
-    template <std::array mino>
+    template <Wrap<mino_p> auto mino>
     inline static std::array<board_t, lines_per_under> shapes = []{
       std::array<board_t, lines_per_under> shapes;
       static_for<lines_per_under>([&](auto i) { shapes[i].data = shape_at_y<mino, i>().data; });
