@@ -9,8 +9,8 @@ DEBUG_FLAGS = -Wall -Wextra -Werror=shift-count-negative -Werror=shift-count-ove
 CXXFLAGS = $(LIB_FLAGS) $(OPT_FLAGS) $(DEBUG_FLAGS) $(EXTRA_FLAGS)
 TARGETS := $(patsubst %.cpp, build/%, $(wildcard *.cpp))
 
-run: build/bench
-	taskset --cpu-list 0 $<
+run: clean build/bench
+	taskset --cpu-list 0 ./build/bench IOLJSZT
 
 build/%: %.cpp build
 	$(CC) $< -o $@ $(CXXFLAGS) $(LINK_FLAGS)
