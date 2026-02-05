@@ -13,7 +13,13 @@ namespace reachability::search {
   constexpr board_t usable_positions(board_t data) {
     board_t positions = ~board_t();
     static_for<std::tuple_size_v<decltype(mino)>>([&][[gnu::always_inline]](auto i) {
-      positions &= (~data).template move<-std::get<i>(mino)>();
+      constexpr auto move = std::get<i>(mino);
+      constexpr int x = move[0], y = move[1];
+      if constexpr (y > 0) {
+        positions &= (~data.template move<coord{0, -y}>()).template move<coord{-x, 0}>();
+      } else {
+        positions &= (~data).template move<-move>();
+      }
     });
     return positions;
   }
