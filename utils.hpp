@@ -42,6 +42,22 @@ namespace reachability {
     }
   };
 
+  template <char... Cs>
+  constexpr auto operator""_szc() {
+    constexpr char arr[] = {Cs...};
+    static_assert(sizeof...(Cs) > 0);
+    static_assert((... && (Cs >= '0' && Cs <= '9')));
+    constexpr std::size_t converted = [&](){
+      std::size_t res = 0;
+      for (char c : arr) {
+        res = res * 10 + (c - '0');
+      }
+      return res;
+    }();
+    return std::integral_constant<std::size_t, converted>{};
+  }
+  template <std::size_t I>
+  constexpr std::integral_constant<std::size_t, I> index_c{};
 
   // home-made tuple
   // based on https://stackoverflow.com/a/69194245, CC BY-SA 4.0
@@ -49,12 +65,34 @@ namespace reachability {
   // so we use std::tuple instead, but it's not a structural type sadly
   namespace details {
     template <std::size_t I, typename T> struct tuple_leaf { T data; };
+  }
+}
 
+namespace std {
+  template <typename T, std::size_t I> constexpr const T& get(const ::reachability::details::tuple_leaf<I, T>& t) { return t.data; }
+  template <typename T, std::size_t I> constexpr T& get(::reachability::details::tuple_leaf<I, T>& t) { return t.data; }
+  template <std::size_t I, typename T> constexpr const T& get(const ::reachability::details::tuple_leaf<I, T>& t) { return t.data; }
+  template <std::size_t I, typename T> constexpr T& get(::reachability::details::tuple_leaf<I, T>& t) { return t.data; }
+}
+
+namespace reachability {
+  namespace details {
     template <typename Seq, typename...> struct tuple_impl;
 
     template <std::size_t... Is, typename... Ts>
     struct tuple_impl<std::index_sequence<Is...>, Ts...> : tuple_leaf<Is, Ts>... {
       constexpr tuple_impl(Ts... args) : tuple_leaf<Is, Ts>{args}... {}
+      template <typename=void>
+      requires (sizeof...(Ts) > 0)
+      constexpr explicit tuple_impl() {}
+      template <typename I>
+      constexpr auto &operator[](I) {
+        return std::get<I::value>(*this);
+      }
+      template <typename I>
+      constexpr const auto &operator[](I) const {
+        return std::get<I::value>(*this);
+      }
     };
 
     template<class... Us> tuple_impl(Us...) -> tuple_impl<std::make_index_sequence<sizeof...(Us)>, Us...>;
@@ -65,6 +103,17 @@ namespace reachability {
   template <typename ... Ts>
   using tuple = details::tuple_impl<std::make_index_sequence<sizeof...(Ts)>, Ts...>;
 
+  namespace details {
+    template <std::size_t I, typename T, typename ...Ts> struct tuple_array;
+    template <typename T, typename ...Ts> struct tuple_array<0, T, Ts...> { using type = tuple<Ts...>; };
+    template <std::size_t I, typename T, typename ...Ts> requires (I > 0)
+    struct tuple_array<I, T, Ts...> {
+      using type = typename tuple_array<I - 1, T, T, Ts...>::type;
+    };
+  }
+  template <typename T, std::size_t N>
+  using tuple_array = typename details::tuple_array<N, T>::type;
+
   template <typename... Ts>
   constexpr tuple<Ts...> make_tuple(Ts... args) {
     return tuple<Ts...>{args...};
@@ -72,10 +121,6 @@ namespace reachability {
 }
 
 namespace std {
-  template <typename T, std::size_t I> constexpr const T& get(const ::reachability::details::tuple_leaf<I, T>& t) { return t.data; }
-  template <typename T, std::size_t I> constexpr T& get(::reachability::details::tuple_leaf<I, T>& t) { return t.data; }
-  template <std::size_t I, typename T> constexpr const T& get(const ::reachability::details::tuple_leaf<I, T>& t) { return t.data; }
-  template <std::size_t I, typename T> constexpr T& get(::reachability::details::tuple_leaf<I, T>& t) { return t.data; }
   template <std::size_t I, class... Ts> struct tuple_element<I, ::reachability::tuple<Ts...>> {
     using type = decltype(tuple_element_tag<I>(std::declval<::reachability::tuple<Ts...>>()));
   };

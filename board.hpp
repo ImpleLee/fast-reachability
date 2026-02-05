@@ -108,7 +108,7 @@ namespace reachability {
     }
     template <coord d, bool check = true>
     constexpr void move_() {
-      constexpr int dx = d[0], dy = d[1];
+      constexpr int dx = d[0_szc], dy = d[1_szc];
       if constexpr (dy == 0) {
         if constexpr (dx > 0) {
           data <<= dx;
@@ -365,7 +365,7 @@ namespace reachability {
       auto [min_x, min_y, max_x, max_y] = blocks::mino_range<mino>();
       board_t b;
       static_for<std::tuple_size_v<decltype(mino)>>([&](auto i){
-        auto [x, y] = std::get<i>(mino);
+        int x = mino[i][0_szc], y = mino[i][1_szc];
         b.set(x - min_x, y - min_y);
       });
       return b;

@@ -13,8 +13,8 @@ namespace reachability::search {
   constexpr board_t usable_positions(board_t data) {
     board_t positions = ~board_t();
     static_for<std::tuple_size_v<decltype(mino)>>([&][[gnu::always_inline]](auto i) {
-      constexpr auto move = std::get<i>(mino);
-      constexpr int x = move[0], y = move[1];
+      constexpr auto move = mino[i];
+      constexpr int x = move[0_szc], y = move[1_szc];
       if constexpr (y > 0) {
         positions &= (~data.template move<coord{0, -y}>()).template move<coord{-x, 0}>();
       } else {
@@ -34,7 +34,7 @@ namespace reachability::search {
   }
   template <Wrap<mino_p> auto mino_from, Wrap<mino_p> auto mino_to, coord d, typename board_t>
   constexpr board_t move_usable(board_t data) {
-    constexpr int dx = d[0];
+    constexpr int dx = d[0_szc];
     constexpr bool need_mask = []{
       constexpr auto range_from = blocks::mino_range<mino_from>();
       constexpr auto range_to = blocks::mino_range<mino_to>();
@@ -54,24 +54,24 @@ namespace reachability::search {
     constexpr int shapes = block.shapes;
     board_t usable[shapes];
     static_for<shapes>([&][[gnu::always_inline]](auto i) {
-      usable[i] = usable_positions<std::get<i>(block.minos)>(data);
+      usable[i] = usable_positions<block.minos[i]>(data);
     });
     constexpr std::array<coord, 3> MOVES = {{{-1, 0}, {1, 0}, {0, -1}}};
-    constexpr coord start2 = start + std::get<1>(std::get<init_rot>(block.mino_index));
-    constexpr auto init_rot2 = std::get<0>(std::get<init_rot>(block.mino_index));
-    if (!usable[init_rot2].template get<start2[0], start2[1]>()) [[unlikely]] {
+    constexpr coord start2 = start + block.mino_index[index_c<init_rot>][1_szc];
+    constexpr auto init_rot2 = block.mino_index[index_c<init_rot>][0_szc];
+    if (!usable[init_rot2].template get<start2[0_szc], start2[1_szc]>()) [[unlikely]] {
       return {};
     }
     bool need_visit[orientations] = { };
     need_visit[init_rot] = true;
     std::array<board_t, orientations> cache;
     const auto consecutive = consecutive_lines(usable[init_rot2]);
-    if (consecutive.template get<start2[1]>()) [[likely]] {
+    if (consecutive.template get<start2[1_szc]>()) [[likely]] {
       const auto current = usable[init_rot2] & usable[init_rot2].template move<coord{0, -1}>();
       const auto covered = usable[init_rot2] & ~current;
       const auto expandable = can_expand(current, covered);
       auto whole_line_usable = (expandable | ~covered.get_heads()).all_bits().populate_highest_bit();
-      constexpr int removed_lines = board_t::height - start2[1];
+      constexpr int removed_lines = board_t::height - start2[1_szc];
       if constexpr (removed_lines > 0) {
         whole_line_usable |= ~(~board_t()).template move<coord{0, -removed_lines}>();
       }
@@ -81,7 +81,7 @@ namespace reachability::search {
       }
       cache[init_rot] = good_lines & usable[init_rot2];
     } else {
-      cache[init_rot].template set<start2[0], start2[1]>();
+      cache[init_rot].template set<start2[0_szc], start2[1_szc]>();
     }
     for (bool updated = true; updated;) [[unlikely]] {
       updated = false;
@@ -89,12 +89,12 @@ namespace reachability::search {
         if (!need_visit[i]) {
           return;
         }
-        constexpr auto index = std::get<0>(std::get<i>(block.mino_index));
+        constexpr auto index = index_c<block.mino_index[i][0_szc]>;
         need_visit[i] = false;
         while (true) {
           board_t result = cache[i];
           static_for<MOVES.size()>([&][[gnu::always_inline]](auto j) {
-            result |= move_usable<std::get<index>(block.minos), std::get<index>(block.minos), MOVES[j]>(cache[i]);
+            result |= move_usable<block.minos[index], block.minos[index], MOVES[j]>(cache[i]);
           });
           result &= usable[index];
           if (cache[i].contains(result)) [[unlikely]] {
@@ -103,19 +103,19 @@ namespace reachability::search {
           cache[i] = result;
         }
         static_for<std::tuple_size_v<decltype(block.kicks)>>([&][[gnu::always_inline]](auto j){
-          constexpr auto this_kick = std::get<j>(block.kicks);
-          constexpr auto diff = std::get<0>(this_kick);
-          constexpr auto kick_table = std::get<1>(this_kick);
-          if constexpr (std::get<0>(diff) != i) {
+          constexpr auto this_kick = block.kicks[j];
+          constexpr auto diff = this_kick[0_szc];
+          constexpr auto kick_table = this_kick[1_szc];
+          if constexpr (diff[0_szc] != i) {
             return;
           }
-          constexpr int target = std::get<1>(diff);
+          constexpr auto target = index_c<diff[1_szc]>;
           board_t to = cache[target];
-          constexpr auto index2 = std::get<0>(std::get<target>(block.mino_index)) ;
+          constexpr auto index2 = index_c<block.mino_index[target][0_szc]>;
           board_t temp = cache[i];
           static_for<std::tuple_size_v<decltype(kick_table)>>([&][[gnu::always_inline]](auto k){
-            to |= move_usable<std::get<index>(block.minos), std::get<index2>(block.minos), std::get<k>(kick_table)>(temp);
-            temp &= ~move_usable<std::get<index2>(block.minos), std::get<index>(block.minos), -std::get<k>(kick_table)>(usable[index2]);
+            to |= move_usable<block.minos[index], block.minos[index2], kick_table[k]>(temp);
+            temp &= ~move_usable<block.minos[index2], block.minos[index], -kick_table[k]>(usable[index2]);
           });
           to &= usable[index2];
           if (!cache[target].contains(to)) {
@@ -129,7 +129,7 @@ namespace reachability::search {
     }
     std::array<board_t, shapes> ret;
     static_for<orientations>([&][[gnu::always_inline]](auto i){
-      constexpr auto index = std::get<0>(std::get<i>(block.mino_index)) ;
+      constexpr auto index = block.mino_index[i][0_szc];
       ret[index] |= cache[i];
     });
     static_for<shapes>([&][[gnu::always_inline]](auto i){
