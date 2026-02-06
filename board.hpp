@@ -89,7 +89,7 @@ namespace reachability {
     constexpr bool operator!=(board_t other) const {
       return any_of(data != other.data);
     }
-    constexpr bool contains(board_t other) const {
+    [[gnu::always_inline]] constexpr bool contains(board_t other) const {
       return all_of((other.data & ~data) == under_t(0));
     }
     constexpr board_t operator~() const {
@@ -219,7 +219,7 @@ namespace reachability {
       });
       return ret;
     }
-    constexpr auto clear_full_lines() const {
+    [[gnu::always_inline]] constexpr auto clear_full_lines() const {
       const board_t is_full = all_bits();
 
       const data_t is_full_single = is_full.data & one_bit<W - 1>();
@@ -313,7 +313,7 @@ namespace reachability {
       return acc;
     }
     template <class F>
-    void for_each_bit(F &&f) const {
+    [[gnu::always_inline]] void for_each_bit(F &&f) const {
       reachability::static_for<num_of_under>([&][[gnu::always_inline]](auto i) {
         for (under_t data_i = data[i]; data_i; data_i &= data_i - 1) {
           int pos = std::countr_zero(data_i);
@@ -335,7 +335,7 @@ namespace reachability {
       return result_t::to_board(result_data);
     }
     template <Wrap<vec_of<type_of<int>>> auto hs>
-    constexpr void call_with_height(unsigned height, auto &&f) const {
+    [[gnu::always_inline]] constexpr void call_with_height(unsigned height, auto &&f) const {
       static_assert(std::tuple_size_v<decltype(hs)> > 0);
       static_for<std::tuple_size_v<decltype(hs)>>([&](auto i){
         static_assert(hs[i] > 0);
@@ -344,7 +344,7 @@ namespace reachability {
         static_assert(hs[i] < hs[index_c<i + 1>]);
       });
       bool found = false;
-      static_for<std::tuple_size_v<decltype(hs)>>([&](auto i){
+      static_for<std::tuple_size_v<decltype(hs)>>([&][[gnu::always_inline]](auto i){
         if (!found && height <= hs[i]) {
           found = true;
           f(cut_to_height<hs[i]>());

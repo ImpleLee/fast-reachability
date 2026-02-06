@@ -14,9 +14,9 @@ using namespace std;
 using BOARD = reachability::board_t<10, 48>;
 
 uint64_t perft(BOARD b, const char *block, unsigned depth, unsigned height = 0) {
-  return reachability::call_with_block<reachability::blocks::SRS>(reachability::block_from_name(*block), [&]<reachability::block B>(){
+  return reachability::call_with_block<reachability::blocks::SRS>(reachability::block_from_name(*block), [&]<reachability::block B>[[gnu::always_inline]](){
     uint64_t n = 0;
-    b.call_with_height<reachability::tuple{6, 12, 24, 48}>(height + 4, [&](auto nb){
+    b.call_with_height<reachability::tuple{6, 12, 24, 48}>(height + 4, [&][[gnu::always_inline]](auto nb){
       constexpr reachability::coord spawn_pos = reachability::coord{4, std::min(22, nb.height) - 2};
       bool check_consecutive;
       if (height > 20) [[unlikely]] {
@@ -32,11 +32,11 @@ uint64_t perft(BOARD b, const char *block, unsigned depth, unsigned height = 0) 
           n += reachable[rot].popcount();
         return;
       }
-      reachability::static_for<B.shapes>([&](auto rot) {
+      reachability::static_for<B.shapes>([&][[gnu::always_inline]](auto rot) {
         constexpr auto mino = B.minos[rot];
         constexpr auto range = reachability::blocks::mino_range<mino>();
         constexpr auto max_y = range[3];
-        reachable[rot].for_each_bit([&](int x, int y) {
+        reachable[rot].for_each_bit([&][[gnu::always_inline]](int x, int y) {
           BOARD new_board = b | BOARD::put<mino>(x, y);
           auto [cleared, cleared_lines] = new_board.clear_full_lines();
           unsigned new_height = std::max(height, unsigned(y + max_y + 1)) - cleared_lines;

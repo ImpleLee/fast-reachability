@@ -154,7 +154,7 @@ namespace Shak {
             return !!any;
         }
 
-        friend constexpr bool all_of(stme self) {
+        [[gnu::always_inline]] friend constexpr bool all_of(stme self) {
             T all = -1;
             static_for<N>([&](auto i) {
                 all &= self.data[int(i)];
