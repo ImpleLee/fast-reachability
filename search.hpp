@@ -48,7 +48,31 @@ namespace reachability::search {
     }();
     return data.template move<d, need_mask>();
   }
-  template <block block, coord start, std::size_t init_rot, typename board_t>
+  template <coord start, bool check_consecutive, typename board_t>
+  constexpr board_t direct_reachable(board_t usable) {
+    const auto current = usable & usable.template move<coord{0, -1}>();
+    const auto covered = usable & ~current;
+    const auto expandable = can_expand(current, covered);
+    auto whole_line_usable = (expandable | ~covered.get_heads()).all_bits().populate_highest_bit();
+    constexpr int removed_lines = board_t::height - start[1_szc];
+    if constexpr (removed_lines > 0) {
+      whole_line_usable |= ~(~board_t()).template move<coord{0, -removed_lines}>();
+    }
+    auto good_lines = whole_line_usable.remove_ones_after_zero();
+    if constexpr (removed_lines > 1) {
+      good_lines &= (~board_t()).template move<coord{0, -(removed_lines - 1)}>();
+    }
+    if constexpr (check_consecutive) {
+      const auto consecutive = consecutive_lines(usable);
+      if (!consecutive.template get<start[1_szc]>()) {
+        auto ret = board_t();
+        ret.template set<start[0_szc], start[1_szc]>();
+        return ret;
+      }
+    }
+    return good_lines & usable;
+  }
+  template <block block, coord start, std::size_t init_rot, bool check_consecutive = true, typename board_t>
   constexpr std::array<board_t, block.shapes> binary_bfs(board_t data) {
     constexpr int orientations = block.orientations;
     constexpr int shapes = block.shapes;
@@ -62,27 +86,14 @@ namespace reachability::search {
     if (!usable[init_rot2].template get<start2[0_szc], start2[1_szc]>()) [[unlikely]] {
       return {};
     }
-    bool need_visit[orientations] = { };
-    need_visit[init_rot] = true;
+    std::array<bool, orientations> need_visit{};
+    need_visit.fill(true);
     std::array<board_t, orientations> cache;
-    const auto consecutive = consecutive_lines(usable[init_rot2]);
-    if (consecutive.template get<start2[1_szc]>()) [[likely]] {
-      const auto current = usable[init_rot2] & usable[init_rot2].template move<coord{0, -1}>();
-      const auto covered = usable[init_rot2] & ~current;
-      const auto expandable = can_expand(current, covered);
-      auto whole_line_usable = (expandable | ~covered.get_heads()).all_bits().populate_highest_bit();
-      constexpr int removed_lines = board_t::height - start2[1_szc];
-      if constexpr (removed_lines > 0) {
-        whole_line_usable |= ~(~board_t()).template move<coord{0, -removed_lines}>();
-      }
-      auto good_lines = whole_line_usable.remove_ones_after_zero();
-      if constexpr (removed_lines > 1) {
-        good_lines &= (~board_t()).template move<coord{0, -(removed_lines - 1)}>();
-      }
-      cache[init_rot] = good_lines & usable[init_rot2];
-    } else {
-      cache[init_rot].template set<start2[0_szc], start2[1_szc]>();
-    }
+    static_for<orientations>([&][[gnu::always_inline]](auto i){
+      constexpr coord this_start = start + block.mino_index[i][1_szc];
+      constexpr auto rot = block.mino_index[i][0_szc];
+      cache[i] = direct_reachable<this_start, check_consecutive>(usable[rot]);
+    });
     for (bool updated = true; updated;) [[unlikely]] {
       updated = false;
       static_for<orientations>([&][[gnu::always_inline]](auto i){
