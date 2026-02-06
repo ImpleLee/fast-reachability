@@ -38,8 +38,9 @@ uint64_t perft(BOARD b, const char *block, unsigned depth, unsigned height = 0) 
         constexpr auto max_y = range[3];
         reachable[rot].for_each_bit([&](int x, int y) {
           BOARD new_board = b | BOARD::put<mino>(x, y);
-          unsigned new_height = std::max(height, unsigned(y + max_y + 1));
-          n += perft(new_board.clear_full_lines().first, block+1, depth-1, new_height);
+          auto [cleared, cleared_lines] = new_board.clear_full_lines();
+          unsigned new_height = std::max(height, unsigned(y + max_y + 1)) - cleared_lines;
+          n += perft(cleared, block+1, depth-1, new_height);
         });
       });
     });
