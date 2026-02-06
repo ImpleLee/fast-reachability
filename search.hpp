@@ -94,7 +94,23 @@ namespace reachability::search {
       constexpr auto rot = block.mino_index[i][0_szc];
       cache[i] = direct_reachable<this_start, check_consecutive>(usable[rot]);
     });
+    const auto quick_check = [&][[gnu::always_inline]]() {
+      bool found_all = true;
+      std::array<board_t, shapes> ret;
+      static_for<orientations>([&][[gnu::always_inline]](auto i){
+        constexpr auto index = block.mino_index[i][0_szc];
+        ret[index] |= cache[i];
+      });
+      static_for<shapes>([&][[gnu::always_inline]](auto i){
+        const auto landable = landable_positions(usable[i]);
+        found_all = found_all && ret[i].contains(landable);
+        ret[i] &= landable;
+      });
+      return std::pair{found_all, ret};
+    };
     for (bool updated = true; updated;) [[unlikely]] {
+      auto [found_all, ret] = quick_check();
+      if (found_all) return ret;
       updated = false;
       static_for<orientations>([&][[gnu::always_inline]](auto i){
         if (!need_visit[i]) {
@@ -138,14 +154,7 @@ namespace reachability::search {
         });
       });
     }
-    std::array<board_t, shapes> ret;
-    static_for<orientations>([&][[gnu::always_inline]](auto i){
-      constexpr auto index = block.mino_index[i][0_szc];
-      ret[index] |= cache[i];
-    });
-    static_for<shapes>([&][[gnu::always_inline]](auto i){
-      ret[i] &= landable_positions(usable[i]);
-    });
+    auto [_, ret] = quick_check();
     return ret;
   }
   template <typename RS, coord start, unsigned init_rot=0, typename board_t>
