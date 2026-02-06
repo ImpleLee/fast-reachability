@@ -135,22 +135,24 @@ namespace reachability::search {
           constexpr auto kick_table = this_kick[1_szc];
           if constexpr (diff[0_szc] != i) {
             return;
+          } else {
+            constexpr auto target = index_c<diff[1_szc]>;
+            static_assert(target != i);
+            board_t to = cache[target];
+            constexpr auto index2 = index_c<block.mino_index[target][0_szc]>;
+            board_t temp = cache[i];
+            static_for<std::tuple_size_v<decltype(kick_table)>>([&][[gnu::always_inline]](auto k){
+              to |= move_usable<block.minos[index], block.minos[index2], kick_table[k]>(temp);
+              temp &= ~move_usable<block.minos[index2], block.minos[index], -kick_table[k]>(usable[index2]);
+            });
+            to &= usable[index2];
+            if (!cache[target].contains(to)) {
+              need_visit[target] = true;
+              if constexpr (target < i)
+                updated = true;
+            }
+            cache[target] = to;
           }
-          constexpr auto target = index_c<diff[1_szc]>;
-          board_t to = cache[target];
-          constexpr auto index2 = index_c<block.mino_index[target][0_szc]>;
-          board_t temp = cache[i];
-          static_for<std::tuple_size_v<decltype(kick_table)>>([&][[gnu::always_inline]](auto k){
-            to |= move_usable<block.minos[index], block.minos[index2], kick_table[k]>(temp);
-            temp &= ~move_usable<block.minos[index2], block.minos[index], -kick_table[k]>(usable[index2]);
-          });
-          to &= usable[index2];
-          if (!cache[target].contains(to)) {
-            need_visit[target] = true;
-            if constexpr (target < i)
-              updated = true;
-          }
-          cache[target] = to;
         });
       });
     }

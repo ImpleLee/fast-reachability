@@ -18,15 +18,17 @@ uint64_t perft(BOARD b, const char *block, unsigned depth, unsigned height = 0) 
     uint64_t n = 0;
     b.call_with_height<reachability::tuple{6, 12, 24, 48}>(height + 4, [&][[gnu::always_inline]](auto nb){
       constexpr reachability::coord spawn_pos = reachability::coord{4, std::min(22, nb.height) - 2};
-      bool check_consecutive;
-      if (height > 20) [[unlikely]] {
-        check_consecutive = true;
+      std::array<decltype(nb), B.shapes> reachable;
+      if constexpr (std::get<1>(spawn_pos) < 20) {
+        reachable = reachability::search::binary_bfs<B, spawn_pos, 0, false>(nb);
       } else {
-        check_consecutive = false;
+        bool check_consecutive = height > 20;
+        if (check_consecutive) [[likely]] {
+          reachable = reachability::search::binary_bfs<B, spawn_pos, 0, true>(nb);
+        } else {
+          reachable = reachability::search::binary_bfs<B, spawn_pos, 0, false>(nb);
+        }
       }
-      auto reachable = check_consecutive ?
-        reachability::search::binary_bfs<B, spawn_pos, 0, true>(nb) :
-        reachability::search::binary_bfs<B, spawn_pos, 0, false>(nb);
       if (depth == 1) {
         for (std::size_t rot = 0; rot < reachable.size(); ++rot)
           n += reachable[rot].popcount();
