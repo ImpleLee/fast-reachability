@@ -76,12 +76,13 @@ namespace reachability::search {
   constexpr std::array<board_t, block.shapes> binary_bfs(board_t data) {
     constexpr int orientations = block.orientations;
     constexpr int shapes = block.shapes;
+    constexpr coord new_start{start[0_szc], std::min(start[1_szc], board_t::height - 1)};
     board_t usable[shapes];
     static_for<shapes>([&][[gnu::always_inline]](auto i) {
       usable[i] = usable_positions<block.minos[i]>(data);
     });
     constexpr std::array<coord, 3> MOVES = {{{-1, 0}, {1, 0}, {0, -1}}};
-    constexpr coord start2 = start + block.mino_index[index_c<init_rot>][1_szc];
+    constexpr coord start2 = new_start + block.mino_index[index_c<init_rot>][1_szc];
     constexpr auto init_rot2 = block.mino_index[index_c<init_rot>][0_szc];
     if (!usable[init_rot2].template get<start2[0_szc], start2[1_szc]>()) [[unlikely]] {
       return {};
@@ -90,7 +91,7 @@ namespace reachability::search {
     need_visit.fill(true);
     std::array<board_t, orientations> cache;
     static_for<orientations>([&][[gnu::always_inline]](auto i){
-      constexpr coord this_start = start + block.mino_index[i][1_szc];
+      constexpr coord this_start = new_start + block.mino_index[i][1_szc];
       constexpr auto rot = block.mino_index[i][0_szc];
       cache[i] = direct_reachable<this_start, check_consecutive>(usable[rot]);
     });
