@@ -11,22 +11,28 @@
 #include <utility>
 using namespace std;
 
-using BOARD = reachability::board_t<10, 24>;
+using BOARD = reachability::board_t<10, 48>;
 
-uint64_t perft(BOARD b, const char *block, unsigned depth) {
+uint64_t perft(BOARD b, const char *block, unsigned depth, unsigned height = 0) {
   return reachability::call_with_block<reachability::blocks::SRS>(reachability::block_from_name(*block), [&]<reachability::block B>(){
-    auto reachable = reachability::search::binary_bfs<B, reachability::coord{4,20}, 0>(b);
     uint64_t n = 0;
-    if (depth == 1) {
-      for (std::size_t rot = 0; rot < reachable.size(); ++rot)
-        n += reachable[rot].popcount();
-      return n;
-    }
-    reachability::static_for<B.shapes>([&](auto rot) {
-      constexpr auto mino = std::get<rot>(B.minos);
-      reachable[rot].for_each_bit([&](int x, int y) {
-        BOARD new_board = b | BOARD::put<mino>(x, y);
-        n += perft(new_board.clear_full_lines().first, block+1, depth-1);
+    b.call_with_height<reachability::tuple{6, 12, 24, 48}>(height + 4, [&](auto nb){
+      constexpr reachability::coord spawn_pos = reachability::coord{4, std::min(22, nb.height) - 2};
+      auto reachable = reachability::search::binary_bfs<B, spawn_pos, 0>(nb);
+      if (depth == 1) {
+        for (std::size_t rot = 0; rot < reachable.size(); ++rot)
+          n += reachable[rot].popcount();
+        return;
+      }
+      reachability::static_for<B.shapes>([&](auto rot) {
+        constexpr auto mino = B.minos[rot];
+        constexpr auto range = reachability::blocks::mino_range<mino>();
+        constexpr auto max_y = range[3];
+        reachable[rot].for_each_bit([&](int x, int y) {
+          BOARD new_board = b | BOARD::put<mino>(x, y);
+          unsigned new_height = std::max(height, unsigned(y + max_y + 1));
+          n += perft(new_board.clear_full_lines().first, block+1, depth-1, new_height);
+        });
       });
     });
     return n;

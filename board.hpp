@@ -17,11 +17,13 @@
 #endif
 
 namespace reachability {
-  template <unsigned W, unsigned H, typename under_t=std::uint64_t>
-    requires
-      std::numeric_limits<under_t>::is_integer
-      && std::is_unsigned_v<under_t>
-      && (std::numeric_limits<under_t>::digits >= W)
+  template <unsigned W, unsigned H, typename under_t>
+  concept valid_board = requires {
+    requires std::numeric_limits<under_t>::is_integer;
+    requires std::is_unsigned_v<under_t>;
+    requires (std::numeric_limits<under_t>::digits >= W);
+  };
+  template <unsigned W, unsigned H, typename under_t=std::uint64_t> requires valid_board<W, H, under_t>
   struct board_t {
     static constexpr int under_bits = std::numeric_limits<under_t>::digits;
     static constexpr int width = W;
@@ -320,7 +322,41 @@ namespace reachability {
         }
       });
     }
+    template <int H2> requires (H2 <= H)
+    constexpr board_t<W, H2, under_t> cut_to_height() const {
+      using result_t = board_t<W, H2, under_t>;
+      typename result_t::data_t result_data{[&][[gnu::always_inline]](auto i) -> under_t {
+        if constexpr (i < result_t::num_of_under) {
+          return data[i];
+        } else {
+          return 0;
+        }
+      }};
+      return result_t::to_board(result_data);
+    }
+    template <Wrap<vec_of<type_of<int>>> auto hs>
+    constexpr void call_with_height(unsigned height, auto &&f) const {
+      static_assert(std::tuple_size_v<decltype(hs)> > 0);
+      static_for<std::tuple_size_v<decltype(hs)>>([&](auto i){
+        static_assert(hs[i] > 0);
+      });
+      static_for<std::tuple_size_v<decltype(hs)> - 1>([&](auto i){
+        static_assert(hs[i] < hs[index_c<i + 1>]);
+      });
+      bool found = false;
+      static_for<std::tuple_size_v<decltype(hs)>>([&](auto i){
+        if (!found && height <= hs[i]) {
+          found = true;
+          f(cut_to_height<hs[i]>());
+        }
+      });
+      if (!found) {
+        f(*this);
+      }
+    }
   private:
+    template <unsigned W2, unsigned H2, typename under_t2> requires valid_board<W2, H2, under_t2>
+    friend struct board_t;
     using data_t =
 #ifdef USE_STME
     Shak::stme<under_t, num_of_under>;
