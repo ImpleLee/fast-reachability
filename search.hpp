@@ -59,7 +59,7 @@ namespace reachability::search {
       whole_line_usable |= ~(~board_t()).template move<coord{0, -removed_lines}>();
     }
     auto good_lines = whole_line_usable.remove_ones_after_zero();
-    if constexpr (removed_lines > 1) {
+    if constexpr (check_consecutive && removed_lines > 1) {
       good_lines &= (~board_t()).template move<coord{0, -(removed_lines - 1)}>();
     }
     if constexpr (check_consecutive) {
