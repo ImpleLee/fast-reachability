@@ -16,7 +16,7 @@ using BOARD = reachability::board_t<10, 48>;
 uint64_t perft(BOARD b, const char *block, unsigned depth, unsigned height = 0) {
   return reachability::call_with_block<reachability::blocks::SRS>(reachability::block_from_name(*block), [&]<reachability::block B>[[gnu::always_inline]](){
     uint64_t n = 0;
-    b.call_with_height<reachability::tuple{6, 12, 24, 48}>(height + 4, [&][[gnu::always_inline]](auto nb){
+    b.call_with_height<reachability::tuple{6, 12, 24, 48}>(height + 2, [&][[gnu::always_inline]](auto nb){
       constexpr reachability::coord spawn_pos = reachability::coord{4, 20};
       std::array<decltype(nb), B.shapes> reachable;
       if constexpr (nb.height < 20) {
