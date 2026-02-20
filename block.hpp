@@ -8,6 +8,9 @@ namespace reachability {
   constexpr coord operator-(const coord &co) {
     return {-co[0_szc], -co[1_szc]};
   }
+  constexpr coord operator+(const coord &co1, const coord &co2) {
+    return {co1[0_szc] + co2[0_szc], co1[1_szc] + co2[1_szc]};
+  }
 
   enum class block_type {
     T, Z, S, J, L, O, I
@@ -126,9 +129,6 @@ namespace reachability::blocks {
     constexpr explicit pure_kick(kicks_t kicks): kicks(kicks) {}
   };
 
-  constexpr coord operator+(const coord &co1, const coord &co2) {
-    return {co1[0_szc] + co2[0_szc], co1[1_szc] + co2[1_szc]};
-  }
   template <
     block_with_offset b,
     pure_kick k
