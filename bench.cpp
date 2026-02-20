@@ -10,20 +10,23 @@
 #include <array>
 #include <utility>
 using namespace std;
+using reachability::operator""_szc;
 
 using BOARD = reachability::board_t<10, 48>;
 
 uint64_t perft(BOARD b, const char *block, unsigned depth, unsigned height = 0) {
   return reachability::call_with_block<reachability::blocks::SRS>(reachability::block_from_name(*block), [&]<reachability::block B>[[gnu::always_inline]](){
     uint64_t n = 0;
-    b.call_with_height<reachability::tuple{6, 12, 24, 48}>(height + 2, [&][[gnu::always_inline]](auto nb){
+    constexpr int relative_height = reachability::search::lowest_position<B>;
+    b.call_with_height<reachability::tuple{6, 12, 24, 48}>(height - relative_height + 1, [&][[gnu::always_inline]](auto nb){
       constexpr reachability::coord spawn_pos = reachability::coord{4, 20};
+      constexpr int necessary_height = spawn_pos[1_szc] + relative_height;
       std::array<decltype(nb), B.shapes> reachable;
-      if constexpr (nb.height < 20) {
+      if constexpr (nb.height < necessary_height) {
         reachable = reachability::search::binary_bfs<B, spawn_pos, 0, false>(nb);
       } else {
-        bool check_consecutive = height > 18;
-        if (check_consecutive) [[likely]] {
+        bool check_consecutive = height > necessary_height;
+        if (check_consecutive) [[unlikely]] {
           reachable = reachability::search::binary_bfs<B, spawn_pos, 0, true>(nb);
         } else {
           reachable = reachability::search::binary_bfs<B, spawn_pos, 0, false>(nb);

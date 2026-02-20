@@ -6,6 +6,7 @@
 #include <array>
 #include <type_traits>
 #include <span>
+#include <algorithm>
 
 namespace reachability::search {
   using namespace blocks;
@@ -72,6 +73,17 @@ namespace reachability::search {
     }
     return good_lines & usable;
   }
+  template <block b>
+  constexpr int lowest_position = []{
+    std::array<int, b.orientations> min_y{};
+    static_for<b.orientations>([&](auto i){
+      constexpr auto diff = b.mino_index[i];
+      constexpr auto mino = b.minos[index_c<diff[0_szc]>];
+      constexpr auto range = blocks::mino_range<mino>();
+      min_y[i] = range[1] + diff[1_szc][1_szc];
+    });
+    return *std::min_element(min_y.begin(), min_y.end());
+  }();
   template <block block, coord start, std::size_t init_rot, bool check_consecutive = true, typename board_t>
   constexpr std::array<board_t, block.shapes> binary_bfs(board_t data) {
     constexpr int orientations = block.orientations;
