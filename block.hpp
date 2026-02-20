@@ -178,7 +178,7 @@ namespace reachability::blocks {
   )};
   inline constexpr pure_block I = {tuple{
     tuple{coord{-1, 0}, coord{0, 0}, coord{1, 0}, coord{2, 0}},   // 0
-    tuple{coord{0, 1}, coord{0, 2}, coord{0, 0}, coord{0, -1}},   // L
+    tuple{coord{0, 0}, coord{0, 1}, coord{0, 2}, coord{0, 3}},    // L
   }};
 
   struct SRS { // used as a namespace but usable as a template parameter
@@ -193,14 +193,14 @@ namespace reachability::blocks {
       tuple{tuple{3, 2}, tuple{coord{0, 0}, coord{-1, 0}, coord{-1, -1}, coord{0, 2}, coord{-1, 2}}},   // L -> 2
     }};
     static constexpr pure_kick I_kick{tuple{
-      tuple{tuple{0, 1}, tuple{coord{1, 0}, coord{-1, 0}, coord{2, 0}, coord{-1, -1}, coord{2, 2}}},    // 0 -> R
-      tuple{tuple{0, 3}, tuple{coord{0, -1}, coord{-1, -1}, coord{2, -1}, coord{-1, 1}, coord{2, -2}}}, // 0 -> L
-      tuple{tuple{1, 2}, tuple{coord{0, -1}, coord{-1, -1}, coord{2, -1}, coord{-1, 1}, coord{2, -2}}}, // R -> 2
-      tuple{tuple{1, 0}, tuple{coord{-1, 0}, coord{1, 0}, coord{-2, 0}, coord{1, 1}, coord{-2, -2}}},   // R -> 0
-      tuple{tuple{2, 3}, tuple{coord{-1, 0}, coord{1, 0}, coord{-2, 0}, coord{1, 1}, coord{-2, -2}}},   // 2 -> L
-      tuple{tuple{2, 1}, tuple{coord{0, 1}, coord{1, 1}, coord{-2, 1}, coord{1, -1}, coord{-2, 2}}},    // 2 -> R
-      tuple{tuple{3, 0}, tuple{coord{0, 1}, coord{1, 1}, coord{-2, 1}, coord{1, -1}, coord{-2, 2}}},    // L -> 0
-      tuple{tuple{3, 2}, tuple{coord{1, 0}, coord{-1, 0}, coord{2, 0}, coord{-1, -1}, coord{2, 2}}},    // L -> 2
+      tuple{tuple{0, 1}, tuple{coord{0, 0}, coord{-2, 0}, coord{+1, 0}, coord{-2, -1}, coord{+1, +2}}}, // 0 -> R
+      tuple{tuple{0, 3}, tuple{coord{0, 0}, coord{-1, 0}, coord{+2, 0}, coord{-1, +2}, coord{+2, -1}}}, // 0 -> L
+      tuple{tuple{1, 2}, tuple{coord{0, 0}, coord{-1, 0}, coord{+2, 0}, coord{-1, +2}, coord{+2, -1}}}, // R -> 2
+      tuple{tuple{1, 0}, tuple{coord{0, 0}, coord{+2, 0}, coord{-1, 0}, coord{+2, +1}, coord{-1, -2}}}, // R -> 0
+      tuple{tuple{2, 3}, tuple{coord{0, 0}, coord{+2, 0}, coord{-1, 0}, coord{+2, +1}, coord{-1, -2}}}, // 2 -> L
+      tuple{tuple{2, 1}, tuple{coord{0, 0}, coord{+1, 0}, coord{-2, 0}, coord{+1, -2}, coord{-2, +1}}}, // 2 -> R
+      tuple{tuple{3, 0}, tuple{coord{0, 0}, coord{+1, 0}, coord{-2, 0}, coord{+1, -2}, coord{-2, +1}}}, // L -> 0
+      tuple{tuple{3, 2}, tuple{coord{0, 0}, coord{-2, 0}, coord{+1, 0}, coord{-2, -1}, coord{+1, +2}}}, // L -> 2
     }};
     static constexpr auto T = combine<convert(blocks::T), common_kick>;
     static constexpr auto Z = combine<block_with_offset{blocks::Z.minos, tuple{
@@ -220,9 +220,9 @@ namespace reachability::blocks {
     static constexpr auto O = combine<convert(blocks::O), no_rotation>;
     static constexpr auto I = combine<block_with_offset{blocks::I.minos, tuple{
       tuple{0, coord{0, 0}},
-      tuple{1, coord{0, -1}},
-      tuple{0, coord{-1, 0}},
-      tuple{1, coord{0, 0}},
+      tuple{1, coord{1, -2}},
+      tuple{0, coord{0, -1}},
+      tuple{1, coord{0, -2}},
     }}, I_kick>;
     SRS() = delete;
   };

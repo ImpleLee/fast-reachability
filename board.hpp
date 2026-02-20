@@ -67,9 +67,7 @@ namespace reachability {
     }
     template <int x, int y>
     constexpr int get() const {
-      if ((x < 0) || (x >= W) || (y < 0) || (y >= H)) {
-        return 2;
-      }
+      static_assert(x >= 0 && x < int(W) && y >= 0 && y < int(H));
       return data[y / lines_per_under] & (under_t(1) << ((y % lines_per_under) * W + x)) ? 1 : 0;
     }
     template <int y>

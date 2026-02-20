@@ -76,25 +76,44 @@ namespace reachability::search {
   constexpr std::array<board_t, block.shapes> binary_bfs(board_t data) {
     constexpr int orientations = block.orientations;
     constexpr int shapes = block.shapes;
-    constexpr coord new_start{start[0_szc], std::min(start[1_szc], board_t::height - 1)};
     board_t usable[shapes];
     static_for<shapes>([&][[gnu::always_inline]](auto i) {
       usable[i] = usable_positions<block.minos[i]>(data);
     });
+    constexpr auto start_at = [](auto rot) constexpr {
+      constexpr coord this_start = start + block.mino_index[rot][1_szc];
+      return coord{this_start[0_szc], std::min(this_start[1_szc], board_t::height - 1)};
+    };
     constexpr std::array<coord, 3> MOVES = {{{-1, 0}, {1, 0}, {0, -1}}};
-    constexpr coord start2 = new_start + block.mino_index[index_c<init_rot>][1_szc];
+    constexpr coord start2 = start_at(index_c<init_rot>);
     constexpr auto init_rot2 = block.mino_index[index_c<init_rot>][0_szc];
     if (!usable[init_rot2].template get<start2[0_szc], start2[1_szc]>()) [[unlikely]] {
       return {};
     }
+    bool all_reachable = [&]{
+      bool found_all = true;
+      static_for<orientations>([&][[gnu::always_inline]](auto i){
+        constexpr coord this_start = start_at(i);
+        constexpr auto rot = block.mino_index[i][0_szc];
+        if (!usable[rot].template get<this_start[0_szc], this_start[1_szc]>()) [[unlikely]] {
+          found_all = false;
+        }
+      });
+      return found_all;
+    }();
     std::array<bool, orientations> need_visit{};
-    need_visit.fill(true);
     std::array<board_t, orientations> cache;
-    static_for<orientations>([&][[gnu::always_inline]](auto i){
-      constexpr coord this_start = new_start + block.mino_index[i][1_szc];
-      constexpr auto rot = block.mino_index[i][0_szc];
-      cache[i] = direct_reachable<this_start, check_consecutive>(usable[rot]);
-    });
+    if (all_reachable) {
+      need_visit.fill(true);
+      static_for<orientations>([&][[gnu::always_inline]](auto i){
+        constexpr coord this_start = start_at(i);
+        constexpr auto rot = block.mino_index[i][0_szc];
+        cache[i] = direct_reachable<this_start, check_consecutive>(usable[rot]);
+      });
+    } else {
+      cache[init_rot2] = direct_reachable<start2, check_consecutive>(usable[init_rot2]);
+      need_visit[init_rot2] = true;
+    }
     const auto quick_check = [&][[gnu::always_inline]]() {
       bool found_all = true;
       std::array<board_t, shapes> ret;
