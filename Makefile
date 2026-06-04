@@ -18,8 +18,14 @@ build/%: %.cpp build
 build/%.s: %.cpp build
 	$(CC) $< -o $@ $(CXXFLAGS) -S
 
+build/%.o.json: %.cpp build
+	$(CC) $< -o /dev/null $(CXXFLAGS) -MJ $@ -c
+
 build:
 	mkdir -p build
+
+compile_commands.json: $(TARGETS:=.o.json)
+	sed -e '1s/^/[\n/' -e '$$s/,$$/\n]/' $^ > $@
 
 .PHONY: clean all run
 all: $(TARGETS)
