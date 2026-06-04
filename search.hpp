@@ -49,8 +49,9 @@ namespace reachability::search {
     }();
     return data.template move<d, need_mask>();
   }
-  template <coord start, bool check_consecutive, typename board_t>
-  constexpr board_t direct_reachable(board_t usable) {
+  constexpr auto direct_reachable =
+      []<coord start, bool check_consecutive>(auto usable) static constexpr {
+    using board_t = decltype(usable);
     const auto current = usable & usable.template move<coord{0, -1}>();
     const auto covered = usable & ~current;
     const auto expandable = can_expand(current, covered);
@@ -72,7 +73,29 @@ namespace reachability::search {
       }
     }
     return good_lines & usable;
-  }
+  };
+  constexpr auto shiftdown_reachable =
+      []<coord start, bool check_consecutive>(auto usable) static constexpr {
+    using board_t = decltype(usable);
+    if constexpr (check_consecutive) {
+      const auto consecutive = consecutive_lines(usable);
+      if (!consecutive.template get<start[1_szc]>()) [[unlikely]] {
+        auto ret = board_t();
+        ret.template set<start[0_szc], start[1_szc]>();
+        return ret;
+      }
+    }
+    auto ret = ~usable;
+    static_for<std::bit_width(unsigned(start[1_szc]))>([&][[gnu::always_inline]](auto i){
+      ret |= ret.template move<coord{0, -(1 << i)}>();
+    });
+    ret = ~ret;
+    constexpr int removed_lines = board_t::height - start[1_szc];
+    if constexpr (removed_lines > 1) {
+      ret &= (~board_t()).template move<coord{0, -(removed_lines - 1)}>();
+    }
+    return ret;
+  };
   template <block b>
   constexpr int lowest_position = []{
     std::array<int, b.orientations> min_y{};
@@ -84,7 +107,8 @@ namespace reachability::search {
     });
     return *std::min_element(min_y.begin(), min_y.end());
   }();
-  template <block block, coord start, std::size_t init_rot, bool check_consecutive = true, typename board_t>
+  template <auto F, block block, coord start, std::size_t init_rot, bool check_consecutive = true, typename board_t>
+    requires std::same_as<decltype(F.template operator()<start, check_consecutive>(board_t())), board_t>
   constexpr std::array<board_t, block.shapes> binary_bfs(board_t data) {
     constexpr int orientations = block.orientations;
     constexpr int shapes = block.shapes;
@@ -120,10 +144,10 @@ namespace reachability::search {
       static_for<orientations>([&][[gnu::always_inline]](auto i){
         constexpr coord this_start = start_at(i);
         constexpr auto rot = block.mino_index[i][0_szc];
-        cache[i] = direct_reachable<this_start, check_consecutive>(usable[rot]);
+        cache[i] = F.template operator()<this_start, check_consecutive>(usable[rot]);
       });
     } else {
-      cache[init_rot2] = direct_reachable<start2, check_consecutive>(usable[init_rot2]);
+      cache[init_rot2] = F.template operator()<start2, check_consecutive>(usable[init_rot2]);
       need_visit[init_rot2] = true;
     }
     const auto quick_check = [&][[gnu::always_inline]]() {
