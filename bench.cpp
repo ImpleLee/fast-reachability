@@ -18,9 +18,9 @@ template <auto policy>
 uint64_t perft(BOARD b, const char *block_name, unsigned depth, unsigned height = 0) {
   using namespace reachability;
   return call_with_block<blocks::SRS>(block_from_name(*block_name), [&]<block B>[[gnu::always_inline]](){
-    uint64_t n = 0;
     constexpr int relative_height = search::lowest_position<B>;
-    b.call_with_height<reachability::tuple{6, 12, 24, 48}>(height + 3, [&][[gnu::always_inline]](auto nb){
+    return b.call_with_height<reachability::tuple{6, 12, 24, 48}>(height + 3, [&][[gnu::always_inline]](auto nb){
+      uint64_t n = 0;
       constexpr coord spawn_pos = coord{4, 20};
       constexpr int necessary_height = spawn_pos[1_szc] + relative_height;
       std::array<decltype(nb), B.shapes> reachable;
@@ -37,7 +37,7 @@ uint64_t perft(BOARD b, const char *block_name, unsigned depth, unsigned height 
       if (depth == 1) {
         for (std::size_t rot = 0; rot < reachable.size(); ++rot)
           n += reachable[rot].popcount();
-        return;
+        return n;
       }
       for (std::size_t rot = 0; rot < reachable.size(); ++rot) {
         reachable[rot].for_each_bit([&][[gnu::always_inline]](int x, int y) {
@@ -47,8 +47,8 @@ uint64_t perft(BOARD b, const char *block_name, unsigned depth, unsigned height 
           n += perft<policy>(cleared, block_name+1, depth-1, new_height);
         });
       }
+      return n;
     });
-    return n;
   });
 }
 

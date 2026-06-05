@@ -342,11 +342,12 @@ namespace reachability {
       return result_t::to_board(result_data);
     }
     template <Wrap<vec_of<type_of<int>>> auto hs>
-    [[gnu::always_inline]] constexpr void call_with_height(unsigned height, auto &&f) const {
+    [[gnu::always_inline]] constexpr auto call_with_height(unsigned height, auto &&f) const {
       static_assert(std::tuple_size_v<decltype(hs)> > 0);
       static_for<std::tuple_size_v<decltype(hs)>>([&](auto i){
         static_assert(hs[i] > 0);
       });
+      decltype(f(*this)) ret;
       static_for<std::tuple_size_v<decltype(hs)> - 1>([&](auto i){
         static_assert(hs[i] < hs[index_c<i + 1>]);
       });
@@ -354,12 +355,13 @@ namespace reachability {
       static_for<std::tuple_size_v<decltype(hs)>>([&][[gnu::always_inline]](auto i){
         if (!found && height <= hs[i]) {
           found = true;
-          f(cut_to_height<hs[i]>());
+          ret = f(cut_to_height<hs[i]>());
         }
       });
       if (!found) {
-        f(*this);
+        ret = f(*this);
       }
+      return ret;
     }
   private:
     template <unsigned W2, unsigned H2, typename under_t2> requires valid_board<W2, H2, under_t2>
