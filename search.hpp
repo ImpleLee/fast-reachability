@@ -28,10 +28,14 @@ namespace reachability::search {
   constexpr board_t landable_positions(board_t usable) {
     return usable & ~usable.template move<coord{0, 1}>();
   }
-  template <typename board_t>
-  constexpr board_t consecutive_lines(board_t usable) {
-    const auto indicator01 = usable.get_heads();
-    return indicator01.has_single_bit();
+  template <int height, typename board_t>
+  constexpr bool consecutive_at(board_t usable) {
+    constexpr int blocks_below = height / board_t::lines_per_under;
+    constexpr int lines_below = blocks_below * board_t::lines_per_under;
+    const auto this_block = usable.template move<coord{0, -lines_below}>().template cut_to_height<board_t::lines_per_under>();
+    const auto indicator01 = this_block.get_heads();
+    const auto single_bit = indicator01.has_single_bit();
+    return single_bit.template get<height % board_t::lines_per_under>();
   }
   template <Wrap<mino_p> auto mino_from, Wrap<mino_p> auto mino_to, coord d, typename board_t>
   constexpr board_t move_usable(board_t data) {
@@ -65,8 +69,7 @@ namespace reachability::search {
       good_lines &= (~board_t()).template move<coord{0, -(removed_lines - 1)}>();
     }
     if constexpr (check_consecutive) {
-      const auto consecutive = consecutive_lines(usable);
-      if (!consecutive.template get<start[1_szc]>()) {
+      if (!consecutive_at<start[1_szc]>(usable)) {
         auto ret = board_t();
         ret.template set<start[0_szc], start[1_szc]>();
         return ret;
@@ -78,8 +81,7 @@ namespace reachability::search {
       []<coord start, bool check_consecutive>(auto usable) static constexpr {
     using board_t = decltype(usable);
     if constexpr (check_consecutive) {
-      const auto consecutive = consecutive_lines(usable);
-      if (!consecutive.template get<start[1_szc]>()) [[unlikely]] {
+      if (!consecutive_at<start[1_szc]>(usable)) [[unlikely]] {
         auto ret = board_t();
         ret.template set<start[0_szc], start[1_szc]>();
         return ret;
