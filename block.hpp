@@ -101,6 +101,16 @@ namespace reachability::blocks {
     return {min_x, min_y, max_x, max_y};
   }
 
+  template <block B>
+  const auto mino_ranges = []() constexpr {
+    std::array<std::array<int, 4>, B.shapes> ret;
+    static_for<B.shapes>([&](auto i){
+      constexpr auto mino = B.minos[i];
+      ret[i] = blocks::mino_range<mino>();
+    });
+    return ret;
+  }();
+
   template <Wrap<minos_p> minos_t>
   struct pure_block {
     minos_t minos;

@@ -122,16 +122,25 @@ namespace reachability {
       result ^= rhs;
       return result;
     }
-    template <Wrap<mino_p> auto mino>
-    static constexpr board_t put(int x, int y) {
-      constexpr auto range = blocks::mino_range<mino>();
-      constexpr int min_x = range[0];
-      board_t shape = shapes<mino>[y % lines_per_under];
-      static_for<num_of_under>([&](auto i) {
-        if (y / lines_per_under == i) shape.template move_<coord{0, (int(i) - 1) * lines_per_under}>();
+    template <Wrap<minos_p> auto minos>
+    static auto get_shapes(){
+      std::array<std::array<board_t, lines_per_under>, std::tuple_size_v<decltype(minos)>> shapes;
+      static_for<std::tuple_size_v<decltype(minos)>>([&](auto i){
+        constexpr auto mino = minos[i];
+        static_for<lines_per_under>([&](auto j) {
+          shapes[i][j].data = shape_at_y<mino, j>().data;
+        });
       });
-      shape.data <<= x + min_x;
-      return shape;
+      return shapes;
+    }
+    constexpr board_t put(int x, int y, std::array<int, 4> range) const {
+      const auto [min_x, min_y, max_x, max_y] = range;
+      board_t result;
+      static_for<num_of_under>([&](auto i) {
+        if (y / lines_per_under == i) result = move<coord{0, (int(i) - 1) * lines_per_under}>();
+      });
+      result.data <<= x + min_x;
+      return result;
     }
     template <coord d, bool check = true>
     constexpr void move_() {
@@ -463,16 +472,12 @@ namespace reachability {
       constexpr auto range = blocks::mino_range<mino>();
       return standard_shape<mino>().template move<coord{0, y + range[1] + lines_per_under}>();
     }
-    template <Wrap<mino_p> auto mino>
-    inline static std::array<board_t, lines_per_under> shapes = []{
-      std::array<board_t, lines_per_under> shapes;
-      static_for<lines_per_under>([&](auto i) { shapes[i].data = shape_at_y<mino, i>().data; });
-      return shapes;
-    }();
 #ifndef USE_STME
     static void assign(data_t &data, int i, under_t value) {
       data[i] = value;
     }
 #endif
   };
+  template <typename board_t, Wrap<minos_p> auto minos>
+  inline static auto shapes = board_t::template get_shapes<minos>();
 }

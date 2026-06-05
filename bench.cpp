@@ -39,17 +39,14 @@ uint64_t perft(BOARD b, const char *block_name, unsigned depth, unsigned height 
           n += reachable[rot].popcount();
         return;
       }
-      static_for<B.shapes>([&][[gnu::always_inline]](auto rot) {
-        constexpr auto mino = B.minos[rot];
-        constexpr auto range = blocks::mino_range<mino>();
-        constexpr auto max_y = range[3];
+      for (std::size_t rot = 0; rot < reachable.size(); ++rot) {
         reachable[rot].for_each_bit([&][[gnu::always_inline]](int x, int y) {
-          BOARD new_board = b | BOARD::put<mino>(x, y);
+          BOARD new_board = b | shapes<BOARD, B.minos>[rot][y % BOARD::lines_per_under].put(x, y, blocks::mino_ranges<B>[rot]);
           auto [cleared, cleared_lines] = new_board.clear_full_lines();
-          unsigned new_height = std::max(height, unsigned(y + max_y + 1)) - cleared_lines;
+          unsigned new_height = std::max(height, unsigned(y + blocks::mino_ranges<B>[rot][3] + 1)) - cleared_lines;
           n += perft<policy>(cleared, block_name+1, depth-1, new_height);
         });
-      });
+      }
     });
     return n;
   });
