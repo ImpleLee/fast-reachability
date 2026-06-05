@@ -2,11 +2,10 @@
 #include "block.hpp"
 #include "utils.hpp"
 #include <tuple>
-#include <queue>
 #include <array>
-#include <type_traits>
 #include <span>
 #include <algorithm>
+#include <bit>
 
 namespace reachability::search {
   using namespace blocks;
