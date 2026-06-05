@@ -102,46 +102,41 @@ void bench() {
   std::cout << "Total Nodes: " << nodes_sum << " Total Time: " << dt_sum << "ms" << " Average NPS: " << (nodes_sum * 1000) / (dt_sum + 1) << std::endl;
 }
 
+template <auto policy>
+void main_small(char *argv[]) {
+  if (strcmp(argv[1], "test") == 0) {
+    test<policy>();
+    std::cout << "All tests passed!" << std::endl;
+    return;
+  } else if (strcmp(argv[1], "bench") == 0) {
+    bench<policy>();
+    return;
+  }
+
+  const auto &[nodes, dt] = perft_with_time<policy>(BOARD{}, argv[1], strlen(argv[1]));
+
+  std::cout << "Depth: " << strlen(argv[1])
+            << " Nodes: " << nodes
+            << " Time: " << dt << "ms"
+            << " NPS: " << (nodes * 1000) / static_cast<uint64_t>(dt + 1) << std::endl;
+}
+
 int main(int argc, char *argv[]) {
-    assert(argc == 2 || argc == 3);
-    bool use_shiftdown = false;
-    if (argc == 3) {
-      if (strcmp(argv[2], "shiftdown") == 0) {
-        use_shiftdown = true;
-      } else if (strcmp(argv[2], "direct") == 0) {
-        use_shiftdown = false;
-      } else {
-        std::cerr << "Invalid argument: " << argv[2] << std::endl;
-        return 1;
-      }
-    }
-    if (strcmp(argv[1], "test") == 0) {
-      if (use_shiftdown) {
-        test<reachability::search::shiftdown_reachable>();
-      } else {
-        test<reachability::search::direct_reachable>();
-      }
-      std::cout << "All tests passed!" << std::endl;
-      return 0;
-    } else if (strcmp(argv[1], "bench") == 0) {
-      if (use_shiftdown) {
-        bench<reachability::search::shiftdown_reachable>();
-      } else {
-        bench<reachability::search::direct_reachable>();
-      }
-      return 0;
-    }
-
-    pair<uint64_t, uint64_t> result;
-    if (use_shiftdown) {
-      result = perft_with_time<reachability::search::shiftdown_reachable>(BOARD{}, argv[1], strlen(argv[1]));
+  assert(argc == 2 || argc == 3);
+  bool use_shiftdown = false;
+  if (argc == 3) {
+    if (strcmp(argv[2], "shiftdown") == 0) {
+      use_shiftdown = true;
+    } else if (strcmp(argv[2], "direct") == 0) {
+      use_shiftdown = false;
     } else {
-      result = perft_with_time<reachability::search::direct_reachable>(BOARD{}, argv[1], strlen(argv[1]));
+      std::cerr << "Invalid argument: " << argv[2] << std::endl;
+      return 1;
     }
-    const auto &[nodes, dt] = result;
-
-    std::cout << "Depth: " << strlen(argv[1])
-              << " Nodes: " << nodes
-              << " Time: " << dt << "ms"
-              << " NPS: " << (nodes * 1000) / static_cast<uint64_t>(dt + 1) << std::endl;
+  }
+  if (use_shiftdown) {
+    main_small<reachability::search::shiftdown_reachable>(argv);
+  } else {
+    main_small<reachability::search::direct_reachable>(argv);
+  }
 }
