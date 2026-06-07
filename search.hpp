@@ -90,12 +90,11 @@ namespace reachability::search {
     static_for<std::bit_width(unsigned(start[1_szc]))>([&][[gnu::always_inline]](auto i){
       ret |= ret.template move<coord{0, -(1 << i)}>();
     });
-    ret = ~ret;
     constexpr int removed_lines = board_t::height - start[1_szc];
     if constexpr (removed_lines > 1) {
-      ret &= (~board_t()).template move<coord{0, -(removed_lines - 1)}>();
+      ret |= ~(~board_t()).template move<coord{0, -(removed_lines - 1)}>();
     }
-    return ret;
+    return ~ret;
   };
   template <block b>
   constexpr int lowest_position = []{
