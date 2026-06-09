@@ -123,10 +123,15 @@ namespace reachability::search {
     constexpr std::array<coord, 3> MOVES = {{{-1, 0}, {1, 0}, {0, -1}}};
     constexpr coord start2 = start_at(index_c<init_rot>);
     constexpr auto init_rot2 = block.mino_index[index_c<init_rot>][0_szc];
-    if (!usable[init_rot2].template get<start2[0_szc], start2[1_szc]>()) [[unlikely]] {
-      return {};
+    if constexpr (check_consecutive) {
+      if (!usable[init_rot2].template get<start2[0_szc], start2[1_szc]>()) [[unlikely]] {
+        return {};
+      }
     }
     bool all_reachable = [&]{
+      if constexpr (!check_consecutive) {
+        return true;
+      }
       bool found_all = true;
       static_for<orientations>([&][[gnu::always_inline]](auto i){
         constexpr coord this_start = start_at(i);
