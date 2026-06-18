@@ -146,21 +146,11 @@ namespace Shak {
         }
 
         friend constexpr bool any_of(stme self) {
-            T any{};
-            static_for<N>([&](auto i) {
-                any |= self.data[int(i)];
-            });
-
-            return !!any;
+            return __builtin_reduce_or(self.data) != 0;
         }
 
         [[gnu::always_inline]] friend constexpr bool all_of(stme self) {
-            T all = -1;
-            static_for<N>([&](auto i) {
-                all &= self.data[int(i)];
-            });
-
-            return !!all;
+            return __builtin_reduce_and(self.data) != 0;
         }
 
         data_t data;
