@@ -2,7 +2,7 @@ MAKEFLAGS += rR
 CC = clang++
 LIB_FLAGS = -std=c++2b
 OPT_FLAGS = -O3 -march=native
-LINK_FLAGS = -flto=auto -g -gz
+LINK_FLAGS = -flto=auto
 EXTRA_FLAGS = # this line is only used to allow shell completion
 override EXTRA_FLAGS += -pipe -MMD -MP
 DEBUG_FLAGS = -Wall -Wextra -Werror=shift-count-negative -Werror=shift-count-overflow
