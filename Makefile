@@ -13,13 +13,13 @@ run: clean build/bench
 	taskset --cpu-list 0 ./build/bench IOLJSZT
 
 build/%: %.cpp build
-	$(CC) $< -o $@ $(CXXFLAGS) $(LINK_FLAGS)
+	$(CC) $< -o $@ $(LINK_FLAGS) $(CXXFLAGS)
 
 build/%.s: %.cpp build
-	$(CC) $< -o $@ $(CXXFLAGS) -S
+	$(CC) $< -o $@ -S $(CXXFLAGS)
 
 build/%.o.json: %.cpp build
-	$(CC) $< -o /dev/null $(CXXFLAGS) -MJ $@ -c
+	$(CC) $< -o /dev/null  -MJ $@ -c $(CXXFLAGS)
 
 build:
 	mkdir -p build
