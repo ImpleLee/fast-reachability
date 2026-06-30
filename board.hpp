@@ -481,5 +481,5 @@ namespace reachability {
 #endif
   };
   template <typename board_t, Wrap<minos_p> auto minos>
-  inline static auto shapes = board_t::template get_shapes<minos>();
+  inline static const auto shapes = board_t::template get_shapes<minos>();
 }
