@@ -190,7 +190,7 @@ namespace reachability {
     friend constexpr std::string to_string(board_t board1, board_t board2) {
       std::string ret;
       static_for<H>([&][[gnu::always_inline]](auto y) {
-        std::string this_ret;
+        std::string this_ret = "|";
         static_for<W>([&][[gnu::always_inline]](auto x) {
           bool b1 = board1.get<x, y>();
           bool b2 = board2.get<x, y>();
@@ -204,7 +204,7 @@ namespace reachability {
             this_ret += "  ";
           }
         });
-        this_ret += '\n';
+        this_ret += "|\n";
         ret = this_ret + ret;
       });
       return ret;
@@ -212,7 +212,7 @@ namespace reachability {
     friend constexpr std::string to_string(board_t board1, board_t board2, board_t board_3) {
       std::string ret;
       static_for<H>([&][[gnu::always_inline]](auto y) {
-        std::string this_ret;
+        std::string this_ret = "|";
         static_for<W>([&][[gnu::always_inline]](auto x) {
           bool tested[2] = {bool(board1.get<x, y>()), bool(board2.get<x, y>())};
           bool b3 = board_3.get<x, y>();
@@ -221,7 +221,7 @@ namespace reachability {
             this_ret += symbols[b3 * 4 + tested[i] * 2 + i];
           }
         });
-        this_ret += '\n';
+        this_ret += "|\n";
         ret = this_ret + ret;
       });
       return ret;
