@@ -18,6 +18,9 @@ build/%: %.cpp build
 build/%.s: %.cpp build
 	$(CC) $< -o $@ -S $(CXXFLAGS)
 
+build/%.ll: %.cpp build
+	$(CC) $< -o $@ -emit-llvm -S $(CXXFLAGS)
+
 build/%.o.json: %.cpp build
 	$(CC) $< -o /dev/null  -MJ $@ -c $(CXXFLAGS)
 
