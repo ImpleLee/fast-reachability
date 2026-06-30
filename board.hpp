@@ -256,6 +256,13 @@ namespace reachability {
 
       return std::pair{to_board((moved_down | remained) & mask_board()), all_lines};
     }
+    template <int n> requires (n > 0 && n <= W)
+    constexpr board_t has_single_empty_span() const {
+      const auto reversed = ~*this;
+      const auto has_single_span = get_heads().has_single_bit();
+      const auto exact_n_width = (reversed & reversed.template move<coord{1-n, 0}>()).has_single_bit();
+      return has_single_span & exact_n_width;
+    }
     constexpr board_t has_single_bit() const {
       auto saturated = data | one_bit<W - 1>();
       saturated &= saturated - one_bit<0>();

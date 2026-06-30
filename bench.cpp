@@ -2,6 +2,7 @@
 #include "search.hpp"
 #include "utils.hpp"
 #include "board.hpp"
+#include "clear.hpp"
 #include <cstdio>
 #include <iostream>
 #include <cassert>
@@ -39,14 +40,37 @@ uint64_t perft(BOARD b, const char *block_name, unsigned depth, unsigned height 
           n += reachable[rot].popcount();
         return n;
       }
-      for (std::size_t rot = 0; rot < reachable.size(); ++rot) {
-        reachable[rot].for_each_bit([&][[gnu::always_inline]](int x, int y) {
-          BOARD new_board = b | shapes<BOARD, B.minos>[rot][y % BOARD::lines_per_under].put(x, y, blocks::mino_ranges<B>[rot]);
-          auto [cleared, cleared_lines] = new_board.clear_full_lines();
-          unsigned new_height = std::max(height, unsigned(y + blocks::mino_ranges<B>[rot][3] + 1)) - cleared_lines;
-          n += perft<policy>(cleared, block_name+1, depth-1, new_height);
+      constexpr int max_width = 4;
+      decltype(nb) clear_masks[max_width];
+      static_for<max_width>([&][[gnu::always_inline]](auto i){
+        clear_masks[int(i)] = clear::has_single_empty_span<i+1>(nb);
+      });
+      static_for<reachable.size()>([&][[gnu::always_inline]](auto rot){
+        constexpr auto mino = B.minos[rot];
+        constexpr auto range = blocks::mino_range<mino>();
+        constexpr int min_y = range[1], max_y = range[3];
+        constexpr auto width_counts = clear::width_counts<mino>();
+        constexpr int lines = width_counts.size();
+        static_assert(lines == max_y - min_y + 1);
+        auto no_clear = reachable[rot];
+        static_for<lines>([&][[gnu::always_inline]](auto i){
+          static_assert(width_counts[i] <= max_width && width_counts[i] >= 1);
+          const auto clear_mask = clear_masks[width_counts[i]-1].template move<coord{0, -(int(i) + min_y)}>();
+          no_clear &= ~clear_mask;
         });
-      }
+        no_clear.for_each_bit([&][[gnu::always_inline]](auto x, auto y) {
+          BOARD new_board = b | shapes<BOARD, B.minos>[rot][y % BOARD::lines_per_under].put(x, y, blocks::mino_ranges<B>[rot]);
+          unsigned new_height = std::max(height, unsigned(y + max_y + 1));
+          n += perft<policy>(new_board, block_name+1, depth-1, new_height);
+        });
+        (reachable[rot] & ~no_clear).for_each_bit([&][[gnu::always_inline]](auto x, auto y) {
+          BOARD new_board = b | shapes<BOARD, B.minos>[rot][y % BOARD::lines_per_under].put(x, y, blocks::mino_ranges<B>[rot]);
+          auto [cleared_board, cleared_lines] = new_board.clear_full_lines();
+          [[assume(cleared_lines != 0)]];
+          unsigned new_height = std::max(height, unsigned(y + max_y + 1)) - cleared_lines;
+          n += perft<policy>(cleared_board, block_name+1, depth-1, new_height);
+        });
+      });
       return n;
     });
   });
