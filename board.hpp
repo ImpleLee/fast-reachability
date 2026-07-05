@@ -12,6 +12,8 @@
 #include "bit_permutations.hpp"
 #ifdef USE_STME
 #include "stme.hpp"
+#elifdef USE_STME_ARRAY
+#include "stme_array.hpp"
 #else
 #include <experimental/simd>
 #endif
@@ -41,6 +43,8 @@ namespace reachability {
     constexpr board_t(std::string_view s): board_t(convert_to_array(s)) {}
     constexpr board_t(std::array<under_t, num_of_under> d):
 #ifdef USE_STME
+      data{d} {}
+#elifdef USE_STME_ARRAY
       data{d} {}
 #else
       data{d.data(), std::experimental::element_aligned} {}
@@ -376,6 +380,8 @@ namespace reachability {
     using data_t =
 #ifdef USE_STME
     Shak::stme<under_t, num_of_under>;
+#elifdef USE_STME_ARRAY
+    Shak::stme_array<under_t, num_of_under>;
 #else
     std::experimental::simd<under_t, std::experimental::simd_abi::deduce_t<under_t, num_of_under>>;
 #endif
@@ -482,9 +488,11 @@ namespace reachability {
       return standard_shape<mino>().template move<coord{0, y + range[1] + lines_per_under}>();
     }
 #ifndef USE_STME
+#ifndef USE_STME_ARRAY
     static void assign(data_t &data, int i, under_t value) {
       data[i] = value;
     }
+#endif
 #endif
   };
   template <typename board_t, Wrap<minos_p> auto minos>
